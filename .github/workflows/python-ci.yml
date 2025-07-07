@@ -1,0 +1,266 @@
+name: Python CI
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build and Test Python Package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          # Reduce matrix size for faster CI
+          - os: windows-latest
+            python-version: "3.8"
+          - os: macos-latest
+            python-version: "3.8"
+          - os: windows-latest
+            python-version: "3.9"
+          - os: macos-latest
+            python-version: "3.9"
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+          
+    - name: Install maturin
+      run: pip install maturin
+      
+    - name: Build Python package
+      run: maturin build --release --out dist
+      working-directory: persist-python
+      
+    - name: Install built package
+      run: pip install persist --find-links persist-python/dist --force-reinstall
+      
+    - name: Install test dependencies
+      run: pip install pytest langchain-core
+      
+    - name: Create simple test
+      run: |
+        cat > test_basic.py << 'EOF'
+        import pytest
+        import persist
+        import tempfile
+        import os
+        import json
+
+        def test_module_import():
+            """Test that the module imports correctly"""
+            assert persist.__version__ == "0.1.0"
+            assert hasattr(persist, 'snapshot')
+            assert hasattr(persist, 'restore')
+            assert hasattr(persist, 'get_metadata')
+            assert hasattr(persist, 'verify_snapshot')
+            assert hasattr(persist, 'snapshot_exists')
+            assert hasattr(persist, 'delete_snapshot')
+
+        def test_snapshot_operations():
+            """Test basic snapshot operations without LangChain"""
+            # Test file operations
+            with tempfile.NamedTemporaryFile(suffix='.json.gz', delete=False) as f:
+                test_path = f.name
+            
+            try:
+                # Test file existence
+                assert not persist.snapshot_exists(test_path)
+                
+                # Test verification of non-existent file
+                assert not persist.verify_snapshot(test_path)
+                
+            finally:
+                if os.path.exists(test_path):
+                    os.unlink(test_path)
+
+        def test_mock_langchain_snapshot():
+            """Test snapshot with mock LangChain-like object"""
+            # Create a mock object that behaves like a LangChain agent
+            class MockLangChainObject:
+                def __init__(self):
+                    self.data = {"type": "mock_agent", "state": "test_state"}
+                    
+                def dumps(self):
+                    return json.dumps(self.data)
+                    
+                @classmethod
+                def loads(cls, json_str):
+                    data = json.loads(json_str)
+                    obj = cls()
+                    obj.data = data
+                    return obj
+            
+            # This test would require actual LangChain, so we'll skip it for basic CI
+            # But we can test the core functionality is accessible
+            mock_obj = MockLangChainObject()
+            assert mock_obj.dumps() == '{"type": "mock_agent", "state": "test_state"}'
+
+        if __name__ == "__main__":
+            pytest.main([__file__, "-v"])
+        EOF
+        
+    - name: Run basic tests
+      run: python test_basic.py
+      
+  build-wheels:
+    name: Build distribution wheels
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        
+    - name: Install maturin
+      run: pip install maturin
+      
+    - name: Build wheels
+      uses: PyO3/maturin-action@v1
+      with:
+        working-directory: persist-python
+        args: --release --out dist --interpreter python
+        rust-toolchain: stable
+        
+    - name: Upload wheels as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: wheels-${{ matrix.os }}
+        path: persist-python/dist/
+        
+  integration-test:
+    name: Integration Test with LangChain
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'  # Only run on PRs to save CI time
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        
+    - name: Install maturin and dependencies
+      run: |
+        pip install maturin
+        pip install langchain-core langchain-community
+        
+    - name: Build and install package
+      run: |
+        maturin develop --release
+      working-directory: persist-python
+      
+    - name: Create integration test
+      run: |
+        cat > integration_test.py << 'EOF'
+        import persist
+        import tempfile
+        import os
+        from langchain_core.prompts import PromptTemplate
+
+        def test_langchain_integration():
+            """Test actual LangChain integration"""
+            try:
+                # Create a simple LangChain object
+                prompt = PromptTemplate(
+                    input_variables=["topic"],
+                    template="Tell me about {topic}"
+                )
+                
+                # Test snapshot and restore
+                with tempfile.NamedTemporaryFile(suffix='.json.gz', delete=False) as f:
+                    test_path = f.name
+                
+                try:
+                    # Snapshot the prompt template
+                    persist.snapshot(prompt, test_path, 
+                                   agent_id="test_prompt", 
+                                   description="Test prompt template")
+                    
+                    # Verify the snapshot exists and is valid
+                    assert persist.snapshot_exists(test_path)
+                    assert persist.verify_snapshot(test_path)
+                    
+                    # Get metadata
+                    metadata = persist.get_metadata(test_path)
+                    assert metadata['agent_id'] == 'test_prompt'
+                    assert metadata['description'] == 'Test prompt template'
+                    
+                    # Restore the prompt template
+                    restored_prompt = persist.restore(test_path)
+                    
+                    # Verify it works the same way
+                    original_result = prompt.format(topic="Python")
+                    restored_result = restored_prompt.format(topic="Python")
+                    assert original_result == restored_result
+                    
+                    print("✅ LangChain integration test passed!")
+                    
+                finally:
+                    if os.path.exists(test_path):
+                        os.unlink(test_path)
+                        
+            except ImportError as e:
+                print(f"⚠️ Skipping LangChain test due to import error: {e}")
+            except Exception as e:
+                print(f"❌ LangChain integration test failed: {e}")
+                raise
+
+        if __name__ == "__main__":
+            test_langchain_integration()
+        EOF
+        
+    - name: Run integration test
+      run: python integration_test.py

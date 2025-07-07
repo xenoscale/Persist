@@ -1,0 +1,20 @@
+[package]
+name = "persist-python"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Python bindings for the Persist agent snapshot system"
+
+[lib]
+name = "persist"
+crate-type = ["cdylib"]
+
+[dependencies]
+persist-core = { path = "../persist-core" }
+pyo3 = { version = "0.22", features = ["extension-module"] }
+serde_json.workspace = true
+
+[build-dependencies]
+pyo3-build-config = "0.22"

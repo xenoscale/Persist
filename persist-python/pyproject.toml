@@ -1,0 +1,58 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "persist"
+version = "0.1.0"
+description = "Enterprise-grade agent snapshot and restore system"
+authors = [
+    { name = "MiniMax Agent", email = "agent@minimax.com" }
+]
+license = { text = "Proprietary" }
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["ai", "agents", "snapshot", "restore", "langchain", "persistence"]
+
+# Runtime dependencies
+dependencies = [
+    "langchain-core>=0.1.0",
+]
+
+# Optional dependencies for different use cases
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "langchain>=0.1.0",
+    "openai>=1.0.0",  # For testing with OpenAI models
+]
+full = [
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.1",
+    "langchain-openai>=0.0.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/xenoscale/Persist"
+Repository = "https://github.com/xenoscale/Persist.git"
+Documentation = "https://github.com/xenoscale/Persist/blob/main/README.md"
+
+[tool.maturin]
+module-name = "persist"
+strip = true
