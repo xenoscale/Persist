@@ -5,12 +5,11 @@ This module contains the core business logic for creating and restoring snapshot
 orchestrating the metadata, compression, and storage components.
 */
 
-use serde_json;
 use crate::{
-    PersistError, Result, SnapshotMetadata,
-    storage::StorageAdapter,
-    compression::CompressionAdapter,
+    compression::CompressionAdapter, storage::StorageAdapter, PersistError, Result,
+    SnapshotMetadata,
 };
+use serde_json;
 
 /// Container for the complete snapshot data (metadata + agent state)
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -28,17 +27,17 @@ struct SnapshotContainer {
 /// # Example
 /// ```rust
 /// use persist_core::{SnapshotEngine, SnapshotMetadata, LocalFileStorage, GzipCompressor};
-/// 
+///
 /// let storage = LocalFileStorage::new();
 /// let compressor = GzipCompressor::new();
 /// let engine = SnapshotEngine::new(storage, compressor);
-/// 
+///
 /// let metadata = SnapshotMetadata::new("agent_1", "session_1", 0);
 /// let agent_json = r#"{"type": "langchain_agent", "state": "..."}"#;
-/// 
+///
 /// // Save snapshot
 /// engine.save_snapshot(agent_json, &metadata, "/path/to/snapshot.json.gz")?;
-/// 
+///
 /// // Restore snapshot
 /// let (metadata, agent_data) = engine.load_snapshot("/path/to/snapshot.json.gz")?;
 /// ```
@@ -62,7 +61,10 @@ where
     /// * `storage` - The storage adapter to use for saving/loading snapshots
     /// * `compressor` - The compression adapter to use for compressing/decompressing data
     pub fn new(storage: S, compressor: C) -> Self {
-        Self { storage, compressor }
+        Self {
+            storage,
+            compressor,
+        }
     }
 
     /// Save an agent snapshot to storage
@@ -95,16 +97,17 @@ where
         path: &str,
     ) -> Result<SnapshotMetadata> {
         // Parse and validate the agent JSON
-        let agent_state: serde_json::Value = serde_json::from_str(agent_json)
-            .map_err(|e| PersistError::Json(e))?;
+        let agent_state: serde_json::Value =
+            serde_json::from_str(agent_json).map_err(|e| PersistError::Json(e))?;
 
         // Normalize the JSON to ensure consistent hash computation across save/load cycles
-        let normalized_agent_json = serde_json::to_string(&agent_state)
-            .map_err(|e| PersistError::Json(e))?;
+        let normalized_agent_json =
+            serde_json::to_string(&agent_state).map_err(|e| PersistError::Json(e))?;
 
         // Update metadata with content hash and size information (using normalized JSON)
         let agent_bytes = normalized_agent_json.as_bytes();
-        let mut updated_metadata = metadata.clone()
+        let mut updated_metadata = metadata
+            .clone()
             .with_content_hash(agent_bytes)
             .with_compression_algorithm(self.compressor.algorithm_name());
 
@@ -118,8 +121,8 @@ where
         };
 
         // Serialize the container to JSON
-        let container_json = serde_json::to_string(&container)
-            .map_err(|e| PersistError::Json(e))?;
+        let container_json =
+            serde_json::to_string(&container).map_err(|e| PersistError::Json(e))?;
 
         // Compress the JSON data
         let compressed_data = self.compressor.compress(container_json.as_bytes())?;
@@ -128,7 +131,8 @@ where
         updated_metadata = updated_metadata.with_compressed_size(compressed_data.len());
 
         // Save to storage
-        self.storage.save(&compressed_data, path)
+        self.storage
+            .save(&compressed_data, path)
             .map_err(|e| PersistError::Storage(format!("Failed to save snapshot: {}", e)))?;
 
         Ok(updated_metadata)
@@ -158,18 +162,21 @@ where
     /// * `PersistError::IntegrityCheckFailed` - If the content hash doesn't match
     pub fn load_snapshot(&self, path: &str) -> Result<(SnapshotMetadata, String)> {
         // Load compressed data from storage
-        let compressed_data = self.storage.load(path)
+        let compressed_data = self
+            .storage
+            .load(path)
             .map_err(|e| PersistError::Storage(format!("Failed to load snapshot: {}", e)))?;
 
         // Decompress the data
         let decompressed_data = self.compressor.decompress(&compressed_data)?;
 
         // Parse the JSON container
-        let container_json = String::from_utf8(decompressed_data)
-            .map_err(|e| PersistError::invalid_format(format!("Invalid UTF-8 in snapshot: {}", e)))?;
+        let container_json = String::from_utf8(decompressed_data).map_err(|e| {
+            PersistError::invalid_format(format!("Invalid UTF-8 in snapshot: {}", e))
+        })?;
 
-        let container: SnapshotContainer = serde_json::from_str(&container_json)
-            .map_err(|e| PersistError::Json(e))?;
+        let container: SnapshotContainer =
+            serde_json::from_str(&container_json).map_err(|e| PersistError::Json(e))?;
 
         // Check format compatibility
         if !container.metadata.is_compatible() {
@@ -181,8 +188,8 @@ where
         }
 
         // Convert agent state back to JSON string (normalized format)
-        let agent_json = serde_json::to_string(&container.agent_state)
-            .map_err(|e| PersistError::Json(e))?;
+        let agent_json =
+            serde_json::to_string(&container.agent_state).map_err(|e| PersistError::Json(e))?;
 
         // Verify integrity
         container.metadata.verify_integrity(agent_json.as_bytes())?;
@@ -209,7 +216,8 @@ where
     /// # Returns
     /// Result indicating success or failure
     pub fn delete_snapshot(&self, path: &str) -> Result<()> {
-        self.storage.delete(path)
+        self.storage
+            .delete(path)
             .map_err(|e| PersistError::Storage(format!("Failed to delete snapshot: {}", e)))
     }
 
@@ -256,10 +264,11 @@ where
 /// # Example
 /// ```rust
 /// use persist_core::create_default_engine;
-/// 
+///
 /// let engine = create_default_engine();
 /// ```
-pub fn create_default_engine() -> SnapshotEngine<crate::storage::local::LocalFileStorage, crate::compression::GzipCompressor> {
+pub fn create_default_engine(
+) -> SnapshotEngine<crate::storage::local::LocalFileStorage, crate::compression::GzipCompressor> {
     SnapshotEngine::new(
         crate::storage::local::LocalFileStorage::new(),
         crate::compression::GzipCompressor::new(),
@@ -281,16 +290,18 @@ pub fn create_default_engine() -> SnapshotEngine<crate::storage::local::LocalFil
 /// # Example
 /// ```rust,no_run
 /// use persist_core::create_s3_engine;
-/// 
+///
 /// // Ensure AWS credentials are set in environment:
 /// // export AWS_ACCESS_KEY_ID=your_access_key
 /// // export AWS_SECRET_ACCESS_KEY=your_secret_key
 /// // export AWS_REGION=us-west-2
-/// 
+///
 /// let engine = create_s3_engine("my-snapshots-bucket".to_string())?;
 /// # Ok::<(), persist_core::PersistError>(())
 /// ```
-pub fn create_s3_engine(bucket: String) -> Result<SnapshotEngine<crate::storage::S3StorageAdapter, crate::compression::GzipCompressor>> {
+pub fn create_s3_engine(
+    bucket: String,
+) -> Result<SnapshotEngine<crate::storage::S3StorageAdapter, crate::compression::GzipCompressor>> {
     let storage = crate::storage::S3StorageAdapter::new(bucket)?;
     Ok(SnapshotEngine::new(
         storage,
@@ -313,21 +324,23 @@ pub fn create_s3_engine(bucket: String) -> Result<SnapshotEngine<crate::storage:
 /// # Example
 /// ```rust,no_run
 /// use persist_core::{StorageConfig, create_engine_from_config};
-/// 
+///
 /// // Local storage
 /// let local_config = StorageConfig::default_local();
 /// let engine = create_engine_from_config(local_config)?;
-/// 
+///
 /// // S3 storage
 /// let s3_config = StorageConfig::s3_with_bucket("my-bucket".to_string());
 /// let engine = create_engine_from_config(s3_config)?;
 /// # Ok::<(), persist_core::PersistError>(())
 /// ```
-pub fn create_engine_from_config(config: crate::config::StorageConfig) -> Result<Box<dyn SnapshotEngineInterface>> {
+pub fn create_engine_from_config(
+    config: crate::config::StorageConfig,
+) -> Result<Box<dyn SnapshotEngineInterface>> {
     use crate::config::StorageBackend;
-    
+
     config.validate()?;
-    
+
     match config.backend {
         StorageBackend::Local => {
             let storage = if let Some(base_path) = config.local_base_path {
@@ -339,9 +352,9 @@ pub fn create_engine_from_config(config: crate::config::StorageConfig) -> Result
             Ok(Box::new(engine))
         }
         StorageBackend::S3 => {
-            let bucket = config.s3_bucket.ok_or_else(|| 
+            let bucket = config.s3_bucket.ok_or_else(|| {
                 PersistError::validation("S3 bucket name is required for S3 backend")
-            )?;
+            })?;
             let storage = crate::storage::S3StorageAdapter::new(bucket)?;
             let engine = SnapshotEngine::new(storage, crate::compression::GzipCompressor::new());
             Ok(Box::new(engine))
@@ -355,7 +368,12 @@ pub fn create_engine_from_config(config: crate::config::StorageConfig) -> Result
 /// through a common interface, enabling the create_engine_from_config function
 /// to return engines with different concrete types.
 pub trait SnapshotEngineInterface {
-    fn save_snapshot(&self, agent_json: &str, metadata: &SnapshotMetadata, path: &str) -> Result<SnapshotMetadata>;
+    fn save_snapshot(
+        &self,
+        agent_json: &str,
+        metadata: &SnapshotMetadata,
+        path: &str,
+    ) -> Result<SnapshotMetadata>;
     fn load_snapshot(&self, path: &str) -> Result<(SnapshotMetadata, String)>;
     fn snapshot_exists(&self, path: &str) -> bool;
     fn delete_snapshot(&self, path: &str) -> Result<()>;
@@ -368,7 +386,12 @@ where
     S: StorageAdapter,
     C: CompressionAdapter,
 {
-    fn save_snapshot(&self, agent_json: &str, metadata: &SnapshotMetadata, path: &str) -> Result<SnapshotMetadata> {
+    fn save_snapshot(
+        &self,
+        agent_json: &str,
+        metadata: &SnapshotMetadata,
+        path: &str,
+    ) -> Result<SnapshotMetadata> {
         self.save_snapshot(agent_json, metadata, path)
     }
 
@@ -396,7 +419,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{storage::MemoryStorage, compression::NoCompression};
+    use crate::{compression::NoCompression, storage::MemoryStorage};
 
     fn create_test_engine() -> SnapshotEngine<MemoryStorage, NoCompression> {
         SnapshotEngine::new(MemoryStorage::new(), NoCompression::new())
@@ -405,28 +428,31 @@ mod tests {
     #[test]
     fn test_snapshot_roundtrip() {
         let engine = create_test_engine();
-        
+
         let agent_json = r#"{"type": "test_agent", "memory": ["Hello", "World"], "tools": []}"#;
         let metadata = SnapshotMetadata::new("test_agent", "test_session", 0)
             .with_description("Test snapshot");
-        
+
         let path = "test_snapshot.json.gz";
-        
+
         // Save snapshot
         let saved_metadata = engine.save_snapshot(agent_json, &metadata, path).unwrap();
         assert!(engine.snapshot_exists(path));
         assert_eq!(saved_metadata.agent_id, "test_agent");
         assert!(!saved_metadata.content_hash.is_empty());
-        
+
         // Load snapshot
         let (loaded_metadata, loaded_agent_json) = engine.load_snapshot(path).unwrap();
-        
+
         // Verify metadata matches
         assert_eq!(loaded_metadata.agent_id, saved_metadata.agent_id);
         assert_eq!(loaded_metadata.session_id, saved_metadata.session_id);
-        assert_eq!(loaded_metadata.snapshot_index, saved_metadata.snapshot_index);
+        assert_eq!(
+            loaded_metadata.snapshot_index,
+            saved_metadata.snapshot_index
+        );
         assert_eq!(loaded_metadata.content_hash, saved_metadata.content_hash);
-        
+
         // Verify agent data matches (JSON should be semantically equivalent)
         let original_value: serde_json::Value = serde_json::from_str(agent_json).unwrap();
         let loaded_value: serde_json::Value = serde_json::from_str(&loaded_agent_json).unwrap();
@@ -436,30 +462,32 @@ mod tests {
     #[test]
     fn test_snapshot_integrity_verification() {
         let engine = create_test_engine();
-        
+
         let agent_json = r#"{"type": "test_agent"}"#;
         let metadata = SnapshotMetadata::new("test_agent", "test_session", 0);
         let path = "test_snapshot.json.gz";
-        
+
         // Save snapshot
         engine.save_snapshot(agent_json, &metadata, path).unwrap();
-        
+
         // Verify snapshot
         assert!(engine.verify_snapshot(path).is_ok());
-        
+
         // Load and verify integrity check works
         let (loaded_metadata, loaded_json) = engine.load_snapshot(path).unwrap();
-        assert!(loaded_metadata.verify_integrity(loaded_json.as_bytes()).is_ok());
+        assert!(loaded_metadata
+            .verify_integrity(loaded_json.as_bytes())
+            .is_ok());
     }
 
     #[test]
     fn test_invalid_json() {
         let engine = create_test_engine();
-        
+
         let invalid_json = r#"{"type": "test_agent", invalid json"#;
         let metadata = SnapshotMetadata::new("test_agent", "test_session", 0);
         let path = "test_snapshot.json.gz";
-        
+
         // Should fail to save invalid JSON
         let result = engine.save_snapshot(invalid_json, &metadata, path);
         assert!(result.is_err());
@@ -469,15 +497,15 @@ mod tests {
     #[test]
     fn test_snapshot_deletion() {
         let engine = create_test_engine();
-        
+
         let agent_json = r#"{"type": "test_agent"}"#;
         let metadata = SnapshotMetadata::new("test_agent", "test_session", 0);
         let path = "test_snapshot.json.gz";
-        
+
         // Save snapshot
         engine.save_snapshot(agent_json, &metadata, path).unwrap();
         assert!(engine.snapshot_exists(path));
-        
+
         // Delete snapshot
         engine.delete_snapshot(path).unwrap();
         assert!(!engine.snapshot_exists(path));
@@ -486,40 +514,43 @@ mod tests {
     #[test]
     fn test_get_metadata_only() {
         let engine = create_test_engine();
-        
+
         let agent_json = r#"{"type": "test_agent", "large_data": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}"#;
         let metadata = SnapshotMetadata::new("test_agent", "test_session", 5)
             .with_description("Large snapshot");
         let path = "test_snapshot.json.gz";
-        
+
         // Save snapshot
         let saved_metadata = engine.save_snapshot(agent_json, &metadata, path).unwrap();
-        
+
         // Get metadata only
         let retrieved_metadata = engine.get_snapshot_metadata(path).unwrap();
         assert_eq!(retrieved_metadata.agent_id, saved_metadata.agent_id);
         assert_eq!(retrieved_metadata.snapshot_index, 5);
-        assert_eq!(retrieved_metadata.description, Some("Large snapshot".to_string()));
+        assert_eq!(
+            retrieved_metadata.description,
+            Some("Large snapshot".to_string())
+        );
     }
 
     #[test]
     fn test_with_real_compression() {
         use crate::compression::GzipCompressor;
-        
+
         let engine = SnapshotEngine::new(MemoryStorage::new(), GzipCompressor::new());
-        
+
         let agent_json = r#"{"type": "test_agent", "data": "repetitive data repetitive data repetitive data repetitive data repetitive data repetitive data repetitive data repetitive data"}"#;
         let metadata = SnapshotMetadata::new("test_agent", "test_session", 0);
         let path = "compressed_snapshot.json.gz";
-        
+
         // Save and load with compression
         let saved_metadata = engine.save_snapshot(agent_json, &metadata, path).unwrap();
         let (_loaded_metadata, loaded_json) = engine.load_snapshot(path).unwrap();
-        
+
         // Verify compression worked (compressed size should be set)
         assert!(saved_metadata.compressed_size.is_some());
         assert_eq!(saved_metadata.compression_algorithm, "gzip");
-        
+
         // Verify data integrity
         let original_value: serde_json::Value = serde_json::from_str(agent_json).unwrap();
         let loaded_value: serde_json::Value = serde_json::from_str(&loaded_json).unwrap();

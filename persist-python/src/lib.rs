@@ -13,8 +13,8 @@ import persist
 persist.snapshot(agent, "/path/to/snapshots/agent1_snapshot.json.gz")
 
 # S3 storage
-persist.snapshot(agent, "agent1/snapshot.json.gz", 
-                storage_mode="s3", 
+persist.snapshot(agent, "agent1/snapshot.json.gz",
+                storage_mode="s3",
                 s3_bucket="my-snapshots-bucket")
 
 # Restore from S3
@@ -24,13 +24,10 @@ restored_agent = persist.restore("agent1/snapshot.json.gz",
 ```
 */
 
-use pyo3::prelude::*;
+use persist_core::{create_engine_from_config, PersistError, SnapshotMetadata, StorageConfig};
 use pyo3::exceptions::PyIOError;
+use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyModule};
-use persist_core::{
-    SnapshotMetadata, create_engine_from_config,
-    PersistError, StorageConfig
-};
 
 /// Convert a Rust PersistError to a Python exception
 fn convert_error(err: PersistError) -> PyErr {
@@ -38,11 +35,14 @@ fn convert_error(err: PersistError) -> PyErr {
         PersistError::Io(io_err) => PyIOError::new_err(format!("I/O error: {}", io_err)),
         PersistError::Json(json_err) => PyIOError::new_err(format!("JSON error: {}", json_err)),
         PersistError::Compression(msg) => PyIOError::new_err(format!("Compression error: {}", msg)),
-        PersistError::IntegrityCheckFailed { expected, actual } => {
-            PyIOError::new_err(format!("Integrity check failed: expected {}, got {}", expected, actual))
-        },
+        PersistError::IntegrityCheckFailed { expected, actual } => PyIOError::new_err(format!(
+            "Integrity check failed: expected {}, got {}",
+            expected, actual
+        )),
         PersistError::InvalidFormat(msg) => PyIOError::new_err(format!("Invalid format: {}", msg)),
-        PersistError::MissingMetadata(field) => PyIOError::new_err(format!("Missing metadata: {}", field)),
+        PersistError::MissingMetadata(field) => {
+            PyIOError::new_err(format!("Missing metadata: {}", field))
+        }
         PersistError::Storage(msg) => PyIOError::new_err(format!("Storage error: {}", msg)),
         PersistError::Validation(msg) => PyIOError::new_err(format!("Validation error: {}", msg)),
     }
@@ -55,7 +55,7 @@ fn create_storage_config(
     s3_region: Option<&str>,
 ) -> PyResult<StorageConfig> {
     let mode = storage_mode.unwrap_or("local").to_lowercase();
-    
+
     match mode.as_str() {
         "local" => Ok(StorageConfig::default_local()),
         "s3" => {
@@ -64,24 +64,25 @@ fn create_storage_config(
             } else {
                 StorageConfig::default_s3()
             };
-            
+
             if let Some(region) = s3_region {
                 config.s3_region = Some(region.to_string());
             }
-            
+
             Ok(config)
         }
         _ => Err(PyIOError::new_err(format!(
-            "Invalid storage_mode '{}'. Must be 'local' or 's3'", mode
+            "Invalid storage_mode '{}'. Must be 'local' or 's3'",
+            mode
         ))),
     }
 }
 
 /// Save an agent snapshot with configurable storage backend
-/// 
+///
 /// This function serializes a LangChain agent (or other compatible object) to a compressed
 /// snapshot file. Supports both local filesystem and Amazon S3 storage backends.
-/// 
+///
 /// # Arguments
 /// * `agent` - The agent object to snapshot (must support LangChain serialization)
 /// * `path` - Storage path/key for the snapshot
@@ -92,21 +93,21 @@ fn create_storage_config(
 /// * `storage_mode` - Storage backend: "local" or "s3" (default: "local")
 /// * `s3_bucket` - S3 bucket name (required for S3 mode)
 /// * `s3_region` - S3 region (optional, uses AWS environment default)
-/// 
+///
 /// # Returns
 /// None on success
-/// 
+///
 /// # Raises
 /// * IOError - If saving fails, JSON serialization fails, or integrity check fails
-/// 
+///
 /// # Example
 /// ```python
 /// import persist
 /// from langchain.chains import ConversationChain
-/// 
+///
 /// # Local storage
 /// persist.snapshot(agent, "snapshots/agent1.json.gz")
-/// 
+///
 /// # S3 storage
 /// persist.snapshot(agent, "agent1/session1/snapshot.json.gz",
 ///                 storage_mode="s3",
@@ -131,65 +132,74 @@ fn snapshot(
     let langchain_load = py.import_bound("langchain_core.load")
         .or_else(|_| py.import_bound("langchain.load"))  // Fallback for older versions
         .map_err(|_| PyIOError::new_err("Could not import langchain_core.load or langchain.load. Please ensure LangChain is installed."))?;
-    
-    let dumps_func = langchain_load.getattr("dumps")
-        .map_err(|_| PyIOError::new_err("Could not find dumps function in LangChain load module"))?;
-    
+
+    let dumps_func = langchain_load.getattr("dumps").map_err(|_| {
+        PyIOError::new_err("Could not find dumps function in LangChain load module")
+    })?;
+
     // Serialize the agent to JSON string using LangChain's dumps
-    let json_obj = dumps_func.call1((agent,))
-        .map_err(|e| PyIOError::new_err(format!("Failed to serialize agent with LangChain dumps: {}", e)))?;
-    
-    let agent_json: String = json_obj.extract()
-        .map_err(|e| PyIOError::new_err(format!("Failed to extract JSON string from LangChain dumps result: {}", e)))?;
-    
+    let json_obj = dumps_func.call1((agent,)).map_err(|e| {
+        PyIOError::new_err(format!(
+            "Failed to serialize agent with LangChain dumps: {}",
+            e
+        ))
+    })?;
+
+    let agent_json: String = json_obj.extract().map_err(|e| {
+        PyIOError::new_err(format!(
+            "Failed to extract JSON string from LangChain dumps result: {}",
+            e
+        ))
+    })?;
+
     // Create metadata
     let mut metadata = SnapshotMetadata::new(agent_id, session_id, snapshot_index);
     if let Some(desc) = description {
         metadata = metadata.with_description(desc);
     }
-    
+
     // Create storage configuration
     let config = create_storage_config(storage_mode, s3_bucket, s3_region)?;
-    
+
     // Create appropriate engine based on storage configuration
-    let engine = create_engine_from_config(config)
-        .map_err(convert_error)?;
-    
+    let engine = create_engine_from_config(config).map_err(convert_error)?;
+
     // Save snapshot
-    let _saved_metadata = engine.save_snapshot(&agent_json, &metadata, path)
+    let _saved_metadata = engine
+        .save_snapshot(&agent_json, &metadata, path)
         .map_err(convert_error)?;
-    
+
     Ok(())
 }
 
 /// Restore an agent snapshot with configurable storage backend
-/// 
+///
 /// This function loads a compressed snapshot file and reconstructs the original agent
 /// object using LangChain's loads() function. Supports both local and S3 storage.
-/// 
+///
 /// # Arguments
 /// * `path` - Storage path/key of the snapshot to restore
 /// * `secrets_map` - Optional dictionary of secrets/API keys for the restored agent
 /// * `storage_mode` - Storage backend: "local" or "s3" (default: "local")
 /// * `s3_bucket` - S3 bucket name (required for S3 mode)
 /// * `s3_region` - S3 region (optional, uses AWS environment default)
-/// 
+///
 /// # Returns
 /// The restored agent object
-/// 
+///
 /// # Raises
 /// * IOError - If loading fails, decompression fails, or integrity check fails
-/// 
+///
 /// # Example
 /// ```python
 /// import persist
 /// import os
-/// 
+///
 /// # Set up AWS credentials for S3 access
 /// os.environ["AWS_ACCESS_KEY_ID"] = "your-access-key"
 /// os.environ["AWS_SECRET_ACCESS_KEY"] = "your-secret-key"
 /// os.environ["AWS_REGION"] = "us-west-2"
-/// 
+///
 /// # Restore from S3
 /// restored_agent = persist.restore("agent1/session1/snapshot.json.gz",
 ///                                storage_mode="s3",
@@ -207,42 +217,46 @@ fn restore(
 ) -> PyResult<PyObject> {
     // Create storage configuration
     let config = create_storage_config(storage_mode, s3_bucket, s3_region)?;
-    
+
     // Create appropriate engine based on storage configuration
-    let engine = create_engine_from_config(config)
-        .map_err(convert_error)?;
-    
+    let engine = create_engine_from_config(config).map_err(convert_error)?;
+
     // Load snapshot
-    let (_metadata, agent_json) = engine.load_snapshot(path)
-        .map_err(convert_error)?;
-    
+    let (_metadata, agent_json) = engine.load_snapshot(path).map_err(convert_error)?;
+
     // Import LangChain's load function
     let langchain_load = py.import_bound("langchain_core.load")
         .or_else(|_| py.import_bound("langchain.load"))
         .map_err(|_| PyIOError::new_err("Could not import langchain_core.load or langchain.load. Please ensure LangChain is installed."))?;
-    
-    let loads_func = langchain_load.getattr("loads")
-        .map_err(|_| PyIOError::new_err("Could not find loads function in LangChain load module"))?;
-    
+
+    let loads_func = langchain_load.getattr("loads").map_err(|_| {
+        PyIOError::new_err("Could not find loads function in LangChain load module")
+    })?;
+
     // Deserialize the agent using LangChain's loads
     let agent_obj = if let Some(secrets) = secrets_map {
         loads_func.call1((agent_json, secrets))
     } else {
         loads_func.call1((agent_json,))
-    }.map_err(|e| PyIOError::new_err(format!("Failed to deserialize agent with LangChain loads: {}", e)))?;
-    
-    
+    }
+    .map_err(|e| {
+        PyIOError::new_err(format!(
+            "Failed to deserialize agent with LangChain loads: {}",
+            e
+        ))
+    })?;
+
     Ok(agent_obj.into())
 }
 
 /// Get metadata for a snapshot without loading the full snapshot
-/// 
+///
 /// # Arguments
 /// * `path` - Storage path/key of the snapshot
 /// * `storage_mode` - Storage backend: "local" or "s3" (default: "local")
 /// * `s3_bucket` - S3 bucket name (required for S3 mode)
 /// * `s3_region` - S3 region (optional, uses AWS environment default)
-/// 
+///
 /// # Returns
 /// Dictionary containing snapshot metadata
 #[pyfunction]
@@ -255,12 +269,10 @@ fn get_metadata(
     s3_region: Option<&str>,
 ) -> PyResult<PyObject> {
     let config = create_storage_config(storage_mode, s3_bucket, s3_region)?;
-    let engine = create_engine_from_config(config)
-        .map_err(convert_error)?;
-    
-    let metadata = engine.get_snapshot_metadata(path)
-        .map_err(convert_error)?;
-    
+    let engine = create_engine_from_config(config).map_err(convert_error)?;
+
+    let metadata = engine.get_snapshot_metadata(path).map_err(convert_error)?;
+
     // Convert metadata to Python dictionary
     let dict = PyDict::new_bound(py);
     dict.set_item("agent_id", metadata.agent_id)?;
@@ -270,7 +282,7 @@ fn get_metadata(
     dict.set_item("format_version", metadata.format_version)?;
     dict.set_item("content_hash", metadata.content_hash)?;
     dict.set_item("compression_algorithm", metadata.compression_algorithm)?;
-    
+
     if let Some(desc) = &metadata.description {
         dict.set_item("description", desc)?;
     }
@@ -280,21 +292,21 @@ fn get_metadata(
     if let Some(snapshot_id) = Some(&metadata.snapshot_id) {
         dict.set_item("snapshot_id", snapshot_id)?;
     }
-    
+
     Ok(dict.into())
 }
 
 /// Verify the integrity of a snapshot
-/// 
+///
 /// # Arguments
 /// * `path` - Storage path/key of the snapshot to verify
 /// * `storage_mode` - Storage backend: "local" or "s3" (default: "local")
 /// * `s3_bucket` - S3 bucket name (required for S3 mode)
 /// * `s3_region` - S3 region (optional, uses AWS environment default)
-/// 
+///
 /// # Returns
 /// None on success (integrity verified)
-/// 
+///
 /// # Raises
 /// * IOError - If verification fails or snapshot is corrupted
 #[pyfunction]
@@ -306,23 +318,21 @@ fn verify_snapshot(
     s3_region: Option<&str>,
 ) -> PyResult<()> {
     let config = create_storage_config(storage_mode, s3_bucket, s3_region)?;
-    let engine = create_engine_from_config(config)
-        .map_err(convert_error)?;
-    
-    engine.verify_snapshot(path)
-        .map_err(convert_error)?;
-    
+    let engine = create_engine_from_config(config).map_err(convert_error)?;
+
+    engine.verify_snapshot(path).map_err(convert_error)?;
+
     Ok(())
 }
 
 /// Check if a snapshot exists
-/// 
+///
 /// # Arguments
 /// * `path` - Storage path/key to check
 /// * `storage_mode` - Storage backend: "local" or "s3" (default: "local")
 /// * `s3_bucket` - S3 bucket name (required for S3 mode)
 /// * `s3_region` - S3 region (optional, uses AWS environment default)
-/// 
+///
 /// # Returns
 /// True if the snapshot exists, False otherwise
 #[pyfunction]
@@ -335,7 +345,7 @@ fn snapshot_exists(
 ) -> PyResult<bool> {
     let config = create_storage_config(storage_mode, s3_bucket, s3_region)
         .unwrap_or_else(|_| StorageConfig::default_local()); // Fallback to local on error
-    
+
     let engine = create_engine_from_config(config);
     match engine {
         Ok(e) => Ok(e.snapshot_exists(path)),
@@ -344,16 +354,16 @@ fn snapshot_exists(
 }
 
 /// Delete a snapshot
-/// 
+///
 /// # Arguments
 /// * `path` - Storage path/key of the snapshot to delete
 /// * `storage_mode` - Storage backend: "local" or "s3" (default: "local")
 /// * `s3_bucket` - S3 bucket name (required for S3 mode)
 /// * `s3_region` - S3 region (optional, uses AWS environment default)
-/// 
+///
 /// # Returns
 /// None on success
-/// 
+///
 /// # Raises
 /// * IOError - If deletion fails
 #[pyfunction]
@@ -365,12 +375,10 @@ fn delete_snapshot(
     s3_region: Option<&str>,
 ) -> PyResult<()> {
     let config = create_storage_config(storage_mode, s3_bucket, s3_region)?;
-    let engine = create_engine_from_config(config)
-        .map_err(convert_error)?;
-    
-    engine.delete_snapshot(path)
-        .map_err(convert_error)?;
-    
+    let engine = create_engine_from_config(config).map_err(convert_error)?;
+
+    engine.delete_snapshot(path).map_err(convert_error)?;
+
     Ok(())
 }
 
@@ -383,10 +391,13 @@ fn persist(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(verify_snapshot, m)?)?;
     m.add_function(wrap_pyfunction!(snapshot_exists, m)?)?;
     m.add_function(wrap_pyfunction!(delete_snapshot, m)?)?;
-    
+
     // Add version info
     m.add("__version__", "0.1.0")?;
-    m.add("__doc__", "Enterprise-grade agent snapshot and restore system with S3 support")?;
-    
+    m.add(
+        "__doc__",
+        "Enterprise-grade agent snapshot and restore system with S3 support",
+    )?;
+
     Ok(())
 }

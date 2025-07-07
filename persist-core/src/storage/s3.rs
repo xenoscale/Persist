@@ -5,15 +5,15 @@ This module provides S3 cloud storage support for snapshots using the official A
 */
 
 use aws_config::SdkConfig;
-use aws_sdk_s3::Client as S3Client;
-use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::error::ProvideErrorMetadata;
+use aws_sdk_s3::primitives::ByteStream;
+use aws_sdk_s3::Client as S3Client;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tracing::{debug, error, info, warn};
 
-use crate::{PersistError, Result};
 use super::StorageAdapter;
+use crate::{PersistError, Result};
 
 /// Amazon S3 storage adapter
 ///
@@ -30,12 +30,12 @@ use super::StorageAdapter;
 /// # Example
 /// ```rust,no_run
 /// use persist_core::storage::S3StorageAdapter;
-/// 
+///
 /// // Set environment variables:
 /// // export AWS_ACCESS_KEY_ID=your_access_key
 /// // export AWS_SECRET_ACCESS_KEY=your_secret_key
 /// // export AWS_REGION=us-west-2
-/// 
+///
 /// let adapter = S3StorageAdapter::new("my-snapshots-bucket".to_string())?;
 /// let data = b"compressed snapshot data";
 /// adapter.save(data, "agent1/session1/snapshot.json.gz")?;
@@ -63,14 +63,18 @@ impl S3StorageAdapter {
     /// - The Tokio runtime cannot be created
     /// - AWS configuration cannot be loaded
     pub fn new(bucket: String) -> Result<Self> {
-        let runtime = Runtime::new()
-            .map_err(|e| PersistError::storage(format!(
-                "Failed to create async runtime for S3 client: {}", e
-            )))?;
+        let runtime = Runtime::new().map_err(|e| {
+            PersistError::storage(format!(
+                "Failed to create async runtime for S3 client: {}",
+                e
+            ))
+        })?;
 
         // Load AWS configuration from environment
         let sdk_config = runtime.block_on(async {
-            aws_config::defaults(aws_config::BehaviorVersion::latest()).load().await
+            aws_config::defaults(aws_config::BehaviorVersion::latest())
+                .load()
+                .await
         });
 
         // Validate that we have credentials
@@ -81,9 +85,9 @@ impl S3StorageAdapter {
         }
 
         let client = S3Client::new(&sdk_config);
-        
+
         info!(bucket = %bucket, "Initialized S3 storage adapter");
-        
+
         Ok(S3StorageAdapter {
             client,
             bucket,
@@ -100,15 +104,17 @@ impl S3StorageAdapter {
     /// # Returns
     /// A new S3StorageAdapter instance or an error if initialization fails
     pub fn with_config(bucket: String, config: SdkConfig) -> Result<Self> {
-        let runtime = Runtime::new()
-            .map_err(|e| PersistError::storage(format!(
-                "Failed to create async runtime for S3 client: {}", e
-            )))?;
+        let runtime = Runtime::new().map_err(|e| {
+            PersistError::storage(format!(
+                "Failed to create async runtime for S3 client: {}",
+                e
+            ))
+        })?;
 
         let client = S3Client::new(&config);
-        
+
         info!(bucket = %bucket, "Initialized S3 storage adapter with custom config");
-        
+
         Ok(S3StorageAdapter {
             client,
             bucket,
@@ -125,7 +131,7 @@ impl S3StorageAdapter {
     fn save_with_retry(&self, data: &[u8], key: &str) -> Result<()> {
         let max_attempts = 3;
         let mut attempts = 0;
-        
+
         loop {
             attempts += 1;
             match self.save_once(data, key) {
@@ -194,7 +200,7 @@ impl S3StorageAdapter {
     fn load_with_retry(&self, key: &str) -> Result<Vec<u8>> {
         let max_attempts = 3;
         let mut attempts = 0;
-        
+
         loop {
             attempts += 1;
             match self.load_once(key) {
@@ -236,9 +242,7 @@ impl S3StorageAdapter {
         match result {
             Ok(output) => {
                 // Collect the response body stream into bytes
-                let bytes_result = self.runtime.block_on(async {
-                    output.body.collect().await
-                });
+                let bytes_result = self.runtime.block_on(async { output.body.collect().await });
 
                 match bytes_result {
                     Ok(data) => {
@@ -358,7 +362,11 @@ impl StorageAdapter for S3StorageAdapter {
 }
 
 /// Map AWS SDK errors to PersistError with appropriate context
-fn map_s3_error<E: ProvideErrorMetadata + std::fmt::Debug>(op: &str, error: aws_sdk_s3::error::SdkError<E>, key: &str) -> PersistError {
+fn map_s3_error<E: ProvideErrorMetadata + std::fmt::Debug>(
+    op: &str,
+    error: aws_sdk_s3::error::SdkError<E>,
+    key: &str,
+) -> PersistError {
     use aws_sdk_s3::error::SdkError;
 
     match &error {
@@ -377,22 +385,18 @@ fn map_s3_error<E: ProvideErrorMetadata + std::fmt::Debug>(op: &str, error: aws_
         SdkError::ServiceError(service_err) => {
             if let Some(code) = service_err.err().code() {
                 match code {
-                    "NoSuchBucket" => {
-                        PersistError::storage(format!("S3 bucket not found"))
-                    }
-                    "NoSuchKey" => {
-                        PersistError::storage(format!("S3 object '{}' not found", key))
-                    }
-                    "AccessDenied" | "Forbidden" => {
-                        PersistError::storage("Access denied to S3 (check credentials and permissions)".to_string())
-                    }
+                    "NoSuchBucket" => PersistError::storage(format!("S3 bucket not found")),
+                    "NoSuchKey" => PersistError::storage(format!("S3 object '{}' not found", key)),
+                    "AccessDenied" | "Forbidden" => PersistError::storage(
+                        "Access denied to S3 (check credentials and permissions)".to_string(),
+                    ),
                     "InvalidBucketName" => {
                         PersistError::storage("Invalid S3 bucket name".to_string())
                     }
                     _ => {
                         let msg = format!(
-                            "S3 service error ({}): {}", 
-                            code, 
+                            "S3 service error ({}): {}",
+                            code,
                             service_err.err().message().unwrap_or("Unknown error")
                         );
                         PersistError::storage(msg)
@@ -402,9 +406,7 @@ fn map_s3_error<E: ProvideErrorMetadata + std::fmt::Debug>(op: &str, error: aws_
                 PersistError::storage(format!("S3 {} service error: {:?}", op, service_err))
             }
         }
-        _ => {
-            PersistError::storage(format!("S3 {} error: {}", op, error))
-        }
+        _ => PersistError::storage(format!("S3 {} error: {}", op, error)),
     }
 }
 
@@ -413,8 +415,8 @@ fn is_transient_error(error: &PersistError) -> bool {
     match error {
         PersistError::Storage(msg) => {
             // Retry on network/timeout issues
-            msg.contains("timed out") 
-                || msg.contains("dispatch") 
+            msg.contains("timed out")
+                || msg.contains("dispatch")
                 || msg.contains("InternalError")
                 || msg.contains("503")
                 || msg.contains("502")
@@ -427,8 +429,8 @@ fn is_transient_error(error: &PersistError) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mockall::predicate::*;
     use mockall::mock;
+    use mockall::predicate::*;
 
     mock! {
         S3Client {
@@ -444,14 +446,14 @@ mod tests {
         // This test requires AWS credentials to be set up
         // In a real test environment, you would mock the AWS config loading
         // For now, we'll test the error case when credentials are missing
-        
+
         // Clear AWS environment variables for this test
         std::env::remove_var("AWS_ACCESS_KEY_ID");
         std::env::remove_var("AWS_SECRET_ACCESS_KEY");
         std::env::remove_var("AWS_REGION");
-        
+
         let result = S3StorageAdapter::new("test-bucket".to_string());
-        
+
         // Should fail due to missing credentials
         assert!(result.is_err());
         if let Err(PersistError::Storage(msg)) = result {
@@ -465,11 +467,13 @@ mod tests {
     fn test_error_mapping() {
         use aws_sdk_s3::error::SdkError;
         use aws_sdk_s3::operation::get_object::{GetObjectError, GetObjectOutput};
-        
+
         // Test timeout error mapping
-        let timeout_error = SdkError::TimeoutError(Box::new(aws_smithy_runtime_api::client::timeout::TimeoutError::new()));
+        let timeout_error = SdkError::TimeoutError(Box::new(
+            aws_smithy_runtime_api::client::timeout::TimeoutError::new(),
+        ));
         let mapped = map_s3_error("get_object", timeout_error, "test-key");
-        
+
         if let PersistError::Storage(msg) = mapped {
             assert!(msg.contains("timed out"));
             assert!(msg.contains("test-key"));
@@ -482,13 +486,13 @@ mod tests {
     fn test_is_transient_error() {
         let timeout_error = PersistError::storage("S3 get_object request timed out (key: test)");
         assert!(is_transient_error(&timeout_error));
-        
+
         let dispatch_error = PersistError::storage("S3 put_object request failed to dispatch");
         assert!(is_transient_error(&dispatch_error));
-        
+
         let auth_error = PersistError::storage("Access denied to S3");
         assert!(!is_transient_error(&auth_error));
-        
+
         let other_error = PersistError::validation("Invalid input");
         assert!(!is_transient_error(&other_error));
     }

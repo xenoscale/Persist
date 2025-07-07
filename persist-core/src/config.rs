@@ -1,5 +1,5 @@
 //! Configuration module for storage backend selection and settings
-//! 
+//!
 //! This module provides configuration structures and enums for selecting
 //! between different storage backends (Local filesystem, S3, etc.) and
 //! configuring their parameters.
@@ -71,22 +71,24 @@ impl StorageConfig {
     }
 
     /// Parse a storage URI and create appropriate configuration
-    /// 
+    ///
     /// Supports formats:
     /// - `s3://bucket-name/path` for S3 storage
     /// - `/local/path` or `./relative/path` for local storage
-    /// 
+    ///
     /// Returns the config and the extracted key/path component
     pub fn from_uri(uri: &str) -> Result<(StorageConfig, String), crate::PersistError> {
         if let Some(s3_part) = uri.strip_prefix("s3://") {
             let parts: Vec<&str> = s3_part.splitn(2, '/').collect();
             if parts.is_empty() || parts[0].is_empty() {
-                return Err(crate::PersistError::validation("Invalid S3 URI: missing bucket name"));
+                return Err(crate::PersistError::validation(
+                    "Invalid S3 URI: missing bucket name",
+                ));
             }
-            
+
             let bucket = parts[0].to_string();
             let key = parts.get(1).unwrap_or(&"").to_string();
-            
+
             let config = StorageConfig::s3_with_bucket(bucket);
             Ok((config, key))
         } else {
@@ -101,7 +103,9 @@ impl StorageConfig {
         match self.backend {
             StorageBackend::S3 => {
                 if self.s3_bucket.is_none() || self.s3_bucket.as_ref().unwrap().is_empty() {
-                    return Err(crate::PersistError::validation("S3 backend requires a valid bucket name"));
+                    return Err(crate::PersistError::validation(
+                        "S3 backend requires a valid bucket name",
+                    ));
                 }
             }
             StorageBackend::Local => {
