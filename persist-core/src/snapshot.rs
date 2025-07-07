@@ -259,11 +259,138 @@ where
 /// 
 /// let engine = create_default_engine();
 /// ```
-pub fn create_default_engine() -> SnapshotEngine<crate::storage::LocalFileStorage, crate::compression::GzipCompressor> {
+pub fn create_default_engine() -> SnapshotEngine<crate::storage::local::LocalFileStorage, crate::compression::GzipCompressor> {
     SnapshotEngine::new(
-        crate::storage::LocalFileStorage::new(),
+        crate::storage::local::LocalFileStorage::new(),
         crate::compression::GzipCompressor::new(),
     )
+}
+
+/// Convenience function to create a snapshot engine with S3 storage
+///
+/// Creates an engine with:
+/// - Amazon S3 storage for the specified bucket
+/// - Gzip compression with default level
+///
+/// # Arguments
+/// * `bucket` - The S3 bucket name to use for storage
+///
+/// # Returns
+/// A snapshot engine configured for S3 storage or an error if S3 initialization fails
+///
+/// # Example
+/// ```rust,no_run
+/// use persist_core::create_s3_engine;
+/// 
+/// // Ensure AWS credentials are set in environment:
+/// // export AWS_ACCESS_KEY_ID=your_access_key
+/// // export AWS_SECRET_ACCESS_KEY=your_secret_key
+/// // export AWS_REGION=us-west-2
+/// 
+/// let engine = create_s3_engine("my-snapshots-bucket".to_string())?;
+/// # Ok::<(), persist_core::PersistError>(())
+/// ```
+pub fn create_s3_engine(bucket: String) -> Result<SnapshotEngine<crate::storage::S3StorageAdapter, crate::compression::GzipCompressor>> {
+    let storage = crate::storage::S3StorageAdapter::new(bucket)?;
+    Ok(SnapshotEngine::new(
+        storage,
+        crate::compression::GzipCompressor::new(),
+    ))
+}
+
+/// Create a snapshot engine based on storage configuration
+///
+/// This function provides a unified interface for creating engines with different
+/// storage backends based on configuration. It automatically selects the appropriate
+/// storage adapter (Local or S3) based on the provided StorageConfig.
+///
+/// # Arguments
+/// * `config` - Storage configuration specifying backend and parameters
+///
+/// # Returns
+/// A boxed storage adapter that can be used with any snapshot engine
+///
+/// # Example
+/// ```rust,no_run
+/// use persist_core::{StorageConfig, create_engine_from_config};
+/// 
+/// // Local storage
+/// let local_config = StorageConfig::default_local();
+/// let engine = create_engine_from_config(local_config)?;
+/// 
+/// // S3 storage
+/// let s3_config = StorageConfig::s3_with_bucket("my-bucket".to_string());
+/// let engine = create_engine_from_config(s3_config)?;
+/// # Ok::<(), persist_core::PersistError>(())
+/// ```
+pub fn create_engine_from_config(config: crate::config::StorageConfig) -> Result<Box<dyn SnapshotEngineInterface>> {
+    use crate::config::StorageBackend;
+    
+    config.validate()?;
+    
+    match config.backend {
+        StorageBackend::Local => {
+            let storage = if let Some(base_path) = config.local_base_path {
+                crate::storage::local::LocalFileStorage::with_base_dir(base_path)
+            } else {
+                crate::storage::local::LocalFileStorage::new()
+            };
+            let engine = SnapshotEngine::new(storage, crate::compression::GzipCompressor::new());
+            Ok(Box::new(engine))
+        }
+        StorageBackend::S3 => {
+            let bucket = config.s3_bucket.ok_or_else(|| 
+                PersistError::validation("S3 bucket name is required for S3 backend")
+            )?;
+            let storage = crate::storage::S3StorageAdapter::new(bucket)?;
+            let engine = SnapshotEngine::new(storage, crate::compression::GzipCompressor::new());
+            Ok(Box::new(engine))
+        }
+    }
+}
+
+/// Trait for snapshot engine operations to enable dynamic dispatch
+///
+/// This trait allows using different storage and compression backends
+/// through a common interface, enabling the create_engine_from_config function
+/// to return engines with different concrete types.
+pub trait SnapshotEngineInterface {
+    fn save_snapshot(&self, agent_json: &str, metadata: &SnapshotMetadata, path: &str) -> Result<SnapshotMetadata>;
+    fn load_snapshot(&self, path: &str) -> Result<(SnapshotMetadata, String)>;
+    fn snapshot_exists(&self, path: &str) -> bool;
+    fn delete_snapshot(&self, path: &str) -> Result<()>;
+    fn get_snapshot_metadata(&self, path: &str) -> Result<SnapshotMetadata>;
+    fn verify_snapshot(&self, path: &str) -> Result<()>;
+}
+
+impl<S, C> SnapshotEngineInterface for SnapshotEngine<S, C>
+where
+    S: StorageAdapter,
+    C: CompressionAdapter,
+{
+    fn save_snapshot(&self, agent_json: &str, metadata: &SnapshotMetadata, path: &str) -> Result<SnapshotMetadata> {
+        self.save_snapshot(agent_json, metadata, path)
+    }
+
+    fn load_snapshot(&self, path: &str) -> Result<(SnapshotMetadata, String)> {
+        self.load_snapshot(path)
+    }
+
+    fn snapshot_exists(&self, path: &str) -> bool {
+        self.snapshot_exists(path)
+    }
+
+    fn delete_snapshot(&self, path: &str) -> Result<()> {
+        self.delete_snapshot(path)
+    }
+
+    fn get_snapshot_metadata(&self, path: &str) -> Result<SnapshotMetadata> {
+        self.get_snapshot_metadata(path)
+    }
+
+    fn verify_snapshot(&self, path: &str) -> Result<()> {
+        self.verify_snapshot(path)
+    }
 }
 
 #[cfg(test)]

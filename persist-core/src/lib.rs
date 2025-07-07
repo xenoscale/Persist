@@ -38,6 +38,7 @@ let (restored_metadata, restored_data) = engine.load_snapshot("/path/to/snapshot
 ```
 */
 
+pub mod config;
 pub mod error;
 pub mod metadata;
 pub mod snapshot;
@@ -46,6 +47,7 @@ pub mod compression;
 
 pub use error::{PersistError, Result};
 pub use metadata::SnapshotMetadata;
-pub use snapshot::{SnapshotEngine, create_default_engine};
-pub use storage::{StorageAdapter, LocalFileStorage};
+pub use snapshot::{SnapshotEngine, create_default_engine, create_s3_engine, create_engine_from_config, SnapshotEngineInterface};
+pub use storage::{StorageAdapter, LocalFileStorage, S3StorageAdapter};
 pub use compression::{CompressionAdapter, GzipCompressor};
+pub use config::{StorageConfig, StorageBackend};
