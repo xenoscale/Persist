@@ -15,6 +15,12 @@ flate2.workspace = true
 thiserror.workspace = true
 chrono.workspace = true
 uuid.workspace = true
+# AWS SDK dependencies for S3 storage backend
+aws-config = "1.1"
+aws-sdk-s3 = "1.96"
+tokio = { version = "1.28", features = ["full"] }
+tracing = "0.1"
 
 [dev-dependencies]
 tempfile = "3.0"
+mockall = "0.11"

@@ -2,11 +2,11 @@
 Snapshot metadata management and schema definition.
 */
 
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
-use uuid::Uuid;
-use sha2::{Sha256, Digest};
 use crate::{PersistError, Result};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use uuid::Uuid;
 
 /// Current metadata format version for compatibility tracking
 pub const METADATA_FORMAT_VERSION: u8 = 1;
@@ -16,34 +16,34 @@ pub const METADATA_FORMAT_VERSION: u8 = 1;
 pub struct SnapshotMetadata {
     /// Unique identifier for the agent (e.g., agent name, UUID)
     pub agent_id: String,
-    
+
     /// Identifier for the session or context (multiple sessions per agent)
     pub session_id: String,
-    
+
     /// Sequence number of this snapshot within the session (0, 1, 2, ...)
     pub snapshot_index: u64,
-    
+
     /// ISO 8601 timestamp when the snapshot was created
     pub timestamp: DateTime<Utc>,
-    
+
     /// SHA-256 hash of the agent state payload for integrity verification
     pub content_hash: String,
-    
+
     /// Format version for compatibility (current: 1)
     pub format_version: u8,
-    
+
     /// Unique identifier for this specific snapshot
     pub snapshot_id: String,
-    
+
     /// Optional human-readable description
     pub description: Option<String>,
-    
+
     /// Size of the uncompressed agent data in bytes
     pub uncompressed_size: usize,
-    
+
     /// Size of the compressed snapshot file in bytes
     pub compressed_size: Option<usize>,
-    
+
     /// Compression algorithm used
     pub compression_algorithm: String,
 }
@@ -59,7 +59,7 @@ impl SnapshotMetadata {
     /// # Example
     /// ```rust
     /// use persist_core::SnapshotMetadata;
-    /// 
+    ///
     /// let metadata = SnapshotMetadata::new("agent_1", "session_1", 0);
     /// assert_eq!(metadata.agent_id, "agent_1");
     /// assert_eq!(metadata.snapshot_index, 0);
@@ -78,7 +78,7 @@ impl SnapshotMetadata {
             format_version: METADATA_FORMAT_VERSION,
             snapshot_id: Uuid::new_v4().to_string(),
             description: None,
-            uncompressed_size: 0, // Will be set when processing data
+            uncompressed_size: 0,  // Will be set when processing data
             compressed_size: None, // Will be set after compression
             compression_algorithm: "gzip".to_string(), // Default compression
         }
@@ -206,10 +206,7 @@ impl SnapshotMetadata {
         let timestamp = self.timestamp.format("%Y%m%d_%H%M%S");
         format!(
             "{}_{}_{}_{}.json.gz",
-            self.agent_id,
-            self.session_id,
-            self.snapshot_index,
-            timestamp
+            self.agent_id, self.session_id, self.snapshot_index, timestamp
         )
     }
 }
@@ -232,20 +229,22 @@ mod tests {
     fn test_content_hash() {
         let data = b"test data";
         let hash = SnapshotMetadata::compute_hash(data);
-        
+
         // SHA-256 of "test data" should be consistent
-        assert_eq!(hash, "916f0027a575074ce72a331777c3478d6513f786a591bd892da1a577bf2335f9");
+        assert_eq!(
+            hash,
+            "916f0027a575074ce72a331777c3478d6513f786a591bd892da1a577bf2335f9"
+        );
     }
 
     #[test]
     fn test_integrity_verification() {
         let data = b"test data";
-        let metadata = SnapshotMetadata::new("agent", "session", 0)
-            .with_content_hash(data);
-        
+        let metadata = SnapshotMetadata::new("agent", "session", 0).with_content_hash(data);
+
         // Should pass with same data
         assert!(metadata.verify_integrity(data).is_ok());
-        
+
         // Should fail with different data
         let different_data = b"different data";
         assert!(metadata.verify_integrity(different_data).is_err());
@@ -255,10 +254,10 @@ mod tests {
     fn test_validation() {
         let mut metadata = SnapshotMetadata::new("agent", "session", 0);
         metadata.content_hash = "dummy_hash".to_string();
-        
+
         // Should pass validation
         assert!(metadata.validate().is_ok());
-        
+
         // Should fail with empty agent_id
         metadata.agent_id = String::new();
         assert!(metadata.validate().is_err());
@@ -268,7 +267,7 @@ mod tests {
     fn test_suggested_filename() {
         let metadata = SnapshotMetadata::new("test_agent", "main_session", 5);
         let filename = metadata.suggested_filename();
-        
+
         assert!(filename.contains("test_agent"));
         assert!(filename.contains("main_session"));
         assert!(filename.contains("5"));

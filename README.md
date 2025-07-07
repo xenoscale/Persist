@@ -50,6 +50,43 @@ restored_agent = persist.restore("agent_snapshot.json.gz")
 response = restored_agent.predict("What did we talk about?")
 ```
 
+
+### S3 Cloud Storage
+
+```python
+import persist
+import os
+
+# Configure AWS credentials
+os.environ["AWS_ACCESS_KEY_ID"] = "your-access-key"
+os.environ["AWS_SECRET_ACCESS_KEY"] = "your-secret-key"
+os.environ["AWS_REGION"] = "us-west-2"
+
+# Save snapshot to S3
+persist.snapshot(
+    agent, 
+    "agents/conversation_bot/session_123/snapshot.json.gz",
+    storage_mode="s3",
+    s3_bucket="my-ai-snapshots-bucket",
+    agent_id="conversation_bot",
+    description="Production snapshot"
+)
+
+# Restore from S3
+restored_agent = persist.restore(
+    "agents/conversation_bot/session_123/snapshot.json.gz",
+    storage_mode="s3", 
+    s3_bucket="my-ai-snapshots-bucket"
+)
+
+# S3 metadata operations
+metadata = persist.get_metadata(
+    "agents/conversation_bot/session_123/snapshot.json.gz",
+    storage_mode="s3",
+    s3_bucket="my-ai-snapshots-bucket"
+)
+```
+
 ### Advanced Usage
 
 ```python
