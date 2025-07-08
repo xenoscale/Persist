@@ -69,6 +69,13 @@ pub struct MemoryStorage {
 }
 
 #[cfg(test)]
+impl Default for MemoryStorage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
 impl MemoryStorage {
     pub fn new() -> Self {
         Self {
@@ -90,7 +97,7 @@ impl StorageAdapter for MemoryStorage {
         storage
             .get(path)
             .cloned()
-            .ok_or_else(|| crate::PersistError::storage(format!("Snapshot not found: {}", path)))
+            .ok_or_else(|| crate::PersistError::storage(format!("Snapshot not found: {path}")))
     }
 
     fn exists(&self, path: &str) -> bool {
