@@ -175,7 +175,10 @@ mod tests {
     fn test_from_uri_invalid_s3() {
         let result = StorageConfig::from_uri("s3://");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("missing bucket name"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("missing bucket name"));
     }
 
     #[test]

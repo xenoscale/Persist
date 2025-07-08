@@ -64,9 +64,7 @@ impl S3StorageAdapter {
     /// - AWS configuration cannot be loaded
     pub fn new(bucket: String) -> Result<Self> {
         let runtime = Runtime::new().map_err(|e| {
-            PersistError::storage(format!(
-                "Failed to create async runtime for S3 client: {e}"
-            ))
+            PersistError::storage(format!("Failed to create async runtime for S3 client: {e}"))
         })?;
 
         // Load AWS configuration from environment
@@ -104,9 +102,7 @@ impl S3StorageAdapter {
     /// A new S3StorageAdapter instance or an error if initialization fails
     pub fn with_config(bucket: String, config: SdkConfig) -> Result<Self> {
         let runtime = Runtime::new().map_err(|e| {
-            PersistError::storage(format!(
-                "Failed to create async runtime for S3 client: {e}"
-            ))
+            PersistError::storage(format!("Failed to create async runtime for S3 client: {e}"))
         })?;
 
         let client = S3Client::new(&config);
@@ -440,14 +436,14 @@ mod tests {
         }
     }
 
-    #[test] 
+    #[test]
     fn test_s3_adapter_creation() {
         // This test is environment-dependent and may pass or fail based on AWS credentials
         // In CI environments, credentials might be available, making this test unreliable
         // TODO: Improve this test with proper mocking of AWS configuration
-        
+
         let result = S3StorageAdapter::new("test-bucket".to_string());
-        
+
         // Accept both success and failure cases since this depends on environment
         match result {
             Ok(_adapter) => {
@@ -456,7 +452,9 @@ mod tests {
             }
             Err(PersistError::Storage(msg)) => {
                 // Expected error case when credentials are missing
-                assert!(msg.contains("AWS credentials not found") || msg.contains("Failed to create"));
+                assert!(
+                    msg.contains("AWS credentials not found") || msg.contains("Failed to create")
+                );
             }
             Err(e) => {
                 panic!("Unexpected error type: {:?}", e);
