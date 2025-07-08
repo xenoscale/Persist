@@ -25,10 +25,10 @@ restored_agent = persist.restore("agent1/snapshot.json.gz",
 */
 
 use persist_core::{create_engine_from_config, PersistError, SnapshotMetadata, StorageConfig};
+use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyIOError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyModule};
-use pyo3::create_exception;
 
 // Define custom Python exception types
 create_exception!(
@@ -72,9 +72,11 @@ fn convert_error(err: PersistError) -> PyErr {
         PersistError::Compression(msg) => {
             PyPersistCompressionError::new_err(format!("Compression error: {msg}"))
         }
-        PersistError::IntegrityCheckFailed { expected, actual } => PyPersistIntegrityError::new_err(
-            format!("Integrity verification failed: expected hash {expected}, got {actual}"),
-        ),
+        PersistError::IntegrityCheckFailed { expected, actual } => {
+            PyPersistIntegrityError::new_err(format!(
+                "Integrity verification failed: expected hash {expected}, got {actual}"
+            ))
+        }
         PersistError::InvalidFormat(msg) => {
             PyPersistError::new_err(format!("Invalid snapshot format: {msg}"))
         }
@@ -84,7 +86,9 @@ fn convert_error(err: PersistError) -> PyErr {
         PersistError::Storage(msg) => {
             PyPersistError::new_err(format!("Storage operation failed: {msg}"))
         }
-        PersistError::Validation(msg) => PyPersistError::new_err(format!("Validation error: {msg}")),
+        PersistError::Validation(msg) => {
+            PyPersistError::new_err(format!("Validation error: {msg}"))
+        }
 
         // S3-specific errors
         PersistError::S3UploadError {
