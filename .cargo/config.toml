@@ -24,3 +24,7 @@ rustflags = [
 [profile.test]
 debug = true
 opt-level = 0
+
+# Additional configuration for tarpaulin compatibility
+# Tarpaulin will use the standard target.x86_64-unknown-linux-gnu configuration
+# Additional flags are handled in build.rs when tarpaulin is detected

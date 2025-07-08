@@ -1,0 +1,29 @@
+[tool.tarpaulin.default]
+# Configuration for cargo-tarpaulin to handle PyO3 compatibility issues
+out = ["Html", "Xml"]
+timeout = 120
+follow-exec = true
+post-args = ["--", "--test-threads=1"]
+exclude-files = [
+    "target/*",
+    "persist-python/src/lib_broken.rs",
+    "persist-python/src/lib_old.rs", 
+    "persist-python/src/lib_error.rs"
+]
+
+# Environment variables for tarpaulin execution
+[tool.tarpaulin.default.env]
+CARGO_TARPAULIN = "1"
+TARPAULIN = "1"
+PYO3_PYTHON = "python3"
+PYTHONPATH = ""
+
+# Specific configuration for PyO3 modules
+[tool.tarpaulin.pyo3]
+exclude = ["persist-python"]
+skip-clean = true
+
+# Workspace configuration
+[tool.tarpaulin.workspace]
+workspace = true
+all-features = true
