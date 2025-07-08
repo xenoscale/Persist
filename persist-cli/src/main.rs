@@ -155,7 +155,8 @@ async fn list_snapshots(
 
     match storage_config.backend {
         StorageBackend::Local => {
-            let path = storage_config.local_base_path
+            let path = storage_config
+                .local_base_path
                 .as_ref()
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_else(|| "./snapshots".to_string());
@@ -241,7 +242,10 @@ async fn show_snapshot(
             println!("  Agent ID: {}", metadata.agent_id);
             println!("  Session ID: {}", metadata.session_id);
             println!("  Index: {}", metadata.snapshot_index);
-            println!("  Created: {}", format_timestamp(metadata.timestamp.timestamp()));
+            println!(
+                "  Created: {}",
+                format_timestamp(metadata.timestamp.timestamp())
+            );
             println!("  Format Version: {}", metadata.format_version);
             println!("  Content Hash: {}", metadata.content_hash);
 
@@ -320,7 +324,9 @@ async fn delete_snapshot(
             #[cfg(feature = "s3")]
             {
                 use persist_core::S3StorageAdapter;
-                let bucket = storage_config.s3_bucket.as_ref()
+                let bucket = storage_config
+                    .s3_bucket
+                    .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("S3 bucket not configured"))?;
                 let storage = S3StorageAdapter::new(bucket).await?;
                 storage.delete(snapshot_id)?;

@@ -28,36 +28,37 @@ use persist_core::{create_engine_from_config, PersistError, SnapshotMetadata, St
 use pyo3::exceptions::{PyException, PyIOError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyModule};
+use pyo3::create_exception;
 
 // Define custom Python exception types
 create_exception!(
-    persist,
-    PersistError,
+    persist_python,
+    PyPersistError,
     PyException,
     "Base exception for Persist operations"
 );
 create_exception!(
-    persist,
-    PersistConfigurationError,
-    PersistError,
+    persist_python,
+    PyPersistConfigurationError,
+    PyPersistError,
     "Configuration error"
 );
 create_exception!(
-    persist,
-    PersistIntegrityError,
-    PersistError,
+    persist_python,
+    PyPersistIntegrityError,
+    PyPersistError,
     "Data integrity verification failed"
 );
 create_exception!(
-    persist,
-    PersistS3Error,
-    PersistError,
+    persist_python,
+    PyPersistS3Error,
+    PyPersistError,
     "S3 storage operation failed"
 );
 create_exception!(
-    persist,
-    PersistCompressionError,
-    PersistError,
+    persist_python,
+    PyPersistCompressionError,
+    PyPersistError,
     "Compression/decompression failed"
 );
 
@@ -66,38 +67,38 @@ fn convert_error(err: PersistError) -> PyErr {
     match err {
         PersistError::Io(io_err) => PyIOError::new_err(format!("I/O error: {io_err}")),
         PersistError::Json(json_err) => {
-            PersistError::new_err(format!("JSON serialization error: {json_err}"))
+            PyPersistError::new_err(format!("JSON serialization error: {json_err}"))
         }
         PersistError::Compression(msg) => {
-            PersistCompressionError::new_err(format!("Compression error: {msg}"))
+            PyPersistCompressionError::new_err(format!("Compression error: {msg}"))
         }
-        PersistError::IntegrityCheckFailed { expected, actual } => PersistIntegrityError::new_err(
+        PersistError::IntegrityCheckFailed { expected, actual } => PyPersistIntegrityError::new_err(
             format!("Integrity verification failed: expected hash {expected}, got {actual}"),
         ),
         PersistError::InvalidFormat(msg) => {
-            PersistError::new_err(format!("Invalid snapshot format: {msg}"))
+            PyPersistError::new_err(format!("Invalid snapshot format: {msg}"))
         }
         PersistError::MissingMetadata(field) => {
-            PersistError::new_err(format!("Missing required metadata field: {field}"))
+            PyPersistError::new_err(format!("Missing required metadata field: {field}"))
         }
         PersistError::Storage(msg) => {
-            PersistError::new_err(format!("Storage operation failed: {msg}"))
+            PyPersistError::new_err(format!("Storage operation failed: {msg}"))
         }
-        PersistError::Validation(msg) => PersistError::new_err(format!("Validation error: {msg}")),
+        PersistError::Validation(msg) => PyPersistError::new_err(format!("Validation error: {msg}")),
 
         // S3-specific errors
         PersistError::S3UploadError {
             source,
             bucket,
             key,
-        } => PersistS3Error::new_err(format!(
+        } => PyPersistS3Error::new_err(format!(
             "S3 upload failed (bucket: {bucket}, key: {key}): {source}"
         )),
         PersistError::S3DownloadError {
             source,
             bucket,
             key,
-        } => PersistS3Error::new_err(format!(
+        } => PyPersistS3Error::new_err(format!(
             "S3 download failed (bucket: {bucket}, key: {key}): {source}"
         )),
         PersistError::S3NotFound { bucket, key } => {
@@ -113,7 +114,7 @@ fn convert_error(err: PersistError) -> PyErr {
             ))
         }
         PersistError::S3Configuration(msg) => {
-            PersistConfigurationError::new_err(format!("S3 configuration error: {msg}"))
+            PyPersistConfigurationError::new_err(format!("S3 configuration error: {msg}"))
         }
     }
 }
@@ -461,19 +462,19 @@ fn persist(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(delete_snapshot, m)?)?;
 
     // Add custom exception classes
-    m.add("PersistError", m.py().get_type::<PersistError>())?;
+    m.add("PersistError", m.py().get_type::<PyPersistError>())?;
     m.add(
         "PersistConfigurationError",
-        m.py().get_type::<PersistConfigurationError>(),
+        m.py().get_type::<PyPersistConfigurationError>(),
     )?;
     m.add(
         "PersistIntegrityError",
-        m.py().get_type::<PersistIntegrityError>(),
+        m.py().get_type::<PyPersistIntegrityError>(),
     )?;
-    m.add("PersistS3Error", m.py().get_type::<PersistS3Error>())?;
+    m.add("PersistS3Error", m.py().get_type::<PyPersistS3Error>())?;
     m.add(
         "PersistCompressionError",
-        m.py().get_type::<PersistCompressionError>(),
+        m.py().get_type::<PyPersistCompressionError>(),
     )?;
 
     // Add version info
