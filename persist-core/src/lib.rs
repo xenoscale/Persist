@@ -45,6 +45,7 @@ pub mod compression;
 pub mod config;
 pub mod error;
 pub mod metadata;
+pub mod observability;
 pub mod snapshot;
 pub mod storage;
 
@@ -52,6 +53,9 @@ pub use compression::{CompressionAdapter, GzipCompressor};
 pub use config::{StorageBackend, StorageConfig};
 pub use error::{PersistError, Result};
 pub use metadata::SnapshotMetadata;
+pub use observability::{
+    init_default_observability, init_observability, MetricsTimer, PersistMetrics,
+};
 pub use snapshot::{
     create_default_engine, create_engine_from_config, create_s3_engine, SnapshotEngine,
     SnapshotEngineInterface,

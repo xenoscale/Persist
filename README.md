@@ -107,6 +107,80 @@ if persist.snapshot_exists("old_snapshot.json.gz"):
     persist.delete_snapshot("old_snapshot.json.gz")
 ```
 
+## 📊 Observability & Monitoring
+
+Persist includes comprehensive observability features for production deployment, providing structured logging, distributed tracing, and detailed metrics.
+
+### Structured Logging
+
+All operations are automatically logged with rich context:
+
+```python
+import persist
+import os
+
+# Enable detailed logging
+os.environ["RUST_LOG"] = "persist_core=info"
+
+# Operations automatically generate structured logs
+persist.snapshot(agent, "agent.json.gz", agent_id="prod_agent")
+# Logs: INFO persist_core::snapshot: Save operation completed 
+#       agent_id="prod_agent" duration_ms=150 size_bytes=2048
+```
+
+### Distributed Tracing
+
+Trace complete operation flows with OpenTelemetry integration:
+
+```bash
+# Enable tracing export to Jaeger
+export PERSIST_JAEGER_ENDPOINT="http://localhost:14268/api/traces"
+
+# View traces at http://localhost:16686
+```
+
+### Metrics & Monitoring
+
+Prometheus-compatible metrics for operational insights:
+
+```bash
+# Access metrics endpoint
+curl http://localhost:9090/metrics
+
+# Key metrics available:
+# - persist_s3_requests_total: Total requests by operation
+# - persist_s3_errors_total: Error count by operation  
+# - persist_s3_latency_seconds: Operation latency histogram
+# - persist_state_size_bytes: Agent state size distribution
+```
+
+### Error Handling
+
+Enhanced error types provide detailed context:
+
+```python
+try:
+    persist.restore("missing_snapshot.json.gz")
+except FileNotFoundError as e:
+    print(f"Snapshot not found: {e}")
+except PermissionError as e:
+    print(f"Access denied: {e}")
+except persist.S3Error as e:
+    print(f"S3 operation failed: {e}")
+```
+
+### Production Configuration
+
+```bash
+# Recommended production settings
+export RUST_LOG="persist_core=info"           # Appropriate log level
+export PERSIST_LOG_FORMAT="json"              # Machine-parseable logs
+export PERSIST_METRICS_ENABLED="true"         # Enable metrics collection
+export PERSIST_TRACING_ENABLED="true"         # Enable distributed tracing
+```
+
+For detailed observability setup and configuration, see [docs/observability.md](docs/observability.md).
+
 ## 🏗 Architecture
 
 Persist follows hexagonal architecture principles with clear separation of concerns:
@@ -219,14 +293,21 @@ Snapshots are stored as compressed JSON files containing:
 - ✅ Local filesystem storage
 - ✅ Gzip compression
 - ✅ Python SDK with PyO3
+- ✅ S3 cloud storage support
+- ✅ Structured logging and error handling
+- ✅ Distributed tracing with OpenTelemetry
+- ✅ Prometheus metrics and monitoring
+- ✅ Comprehensive end-to-end testing
 
 ### Future Enhancements
 - 🔄 Automated periodic snapshots
-- ☁️ Cloud storage backends (S3, Azure Blob, GCP Storage)
+- ☁️ Additional cloud storage backends (Azure Blob, GCP Storage)
 - 🔐 Encryption at rest
 - 🤖 Support for additional AI frameworks (Auto-GPT, HuggingFace)
 - 📊 Snapshot management UI
 - 🏃‍♂️ Streaming compression for large agents
+- 🔍 Advanced observability dashboards
+- 🚨 Built-in alerting and health checks
 
 ## 🤝 Contributing
 

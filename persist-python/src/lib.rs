@@ -44,6 +44,36 @@ fn convert_error(err: PersistError) -> PyErr {
         }
         PersistError::Storage(msg) => PyIOError::new_err(format!("Storage error: {msg}")),
         PersistError::Validation(msg) => PyIOError::new_err(format!("Validation error: {msg}")),
+
+        // S3-specific errors
+        PersistError::S3UploadError {
+            source,
+            bucket,
+            key,
+        } => PyIOError::new_err(format!(
+            "S3 upload failed (bucket: {bucket}, key: {key}): {source}"
+        )),
+        PersistError::S3DownloadError {
+            source,
+            bucket,
+            key,
+        } => PyIOError::new_err(format!(
+            "S3 download failed (bucket: {bucket}, key: {key}): {source}"
+        )),
+        PersistError::S3NotFound { bucket, key } => {
+            use pyo3::exceptions::PyFileNotFoundError;
+            PyFileNotFoundError::new_err(format!(
+                "S3 object not found (bucket: {bucket}, key: {key})"
+            ))
+        }
+        PersistError::S3AccessDenied { bucket } => {
+            use pyo3::exceptions::PyPermissionError;
+            PyPermissionError::new_err(format!("Access denied to S3 bucket: {bucket}"))
+        }
+        PersistError::S3Configuration(msg) => {
+            use pyo3::exceptions::PyValueError;
+            PyValueError::new_err(format!("S3 configuration error: {msg}"))
+        }
     }
 }
 
