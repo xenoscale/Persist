@@ -391,8 +391,13 @@ fn benchmark_roundtrip_operations(c: &mut Criterion) {
                             .unwrap(),
                     );
 
-                    // Verify (minimal verification to ensure correctness)
-                    assert_eq!(loaded_data.len(), data.len());
+                    // Verify by comparing the parsed JSON structures. The
+                    // serialized length can vary because `HashMap` iteration
+                    // order is nondeterministic across runs.
+                    let loaded_json: serde_json::Value =
+                        serde_json::from_str(&loaded_data).unwrap();
+                    let original_json: serde_json::Value = serde_json::from_str(&data).unwrap();
+                    assert_eq!(loaded_json, original_json);
                     assert_eq!(loaded_metadata.agent_id, "roundtrip_agent");
                 });
             },
