@@ -2,6 +2,7 @@
 members = [
     "persist-core",
     "persist-python",
+    "persist-cli",
 ]
 resolver = "2"
 
@@ -30,8 +31,13 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 # opentelemetry = { version = "0.20", features = ["rt-tokio", "metrics"] }
 # opentelemetry_sdk = { version = "0.20", features = ["rt-tokio"] }
 # opentelemetry-jaeger = { version = "0.20", features = ["rt-tokio"] }
-prometheus = "0.13"
+prometheus = "0.14"
 
 # PyO3 dependencies
 pyo3 = "0.25.1"
 pyo3-build-config = "0.25.1"
+
+# CLI dependencies
+clap = { version = "4.0", features = ["derive", "env"] }
+tabled = "0.15"
+anyhow = "1.0"

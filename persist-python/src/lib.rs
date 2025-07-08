@@ -25,54 +25,95 @@ restored_agent = persist.restore("agent1/snapshot.json.gz",
 */
 
 use persist_core::{create_engine_from_config, PersistError, SnapshotMetadata, StorageConfig};
-use pyo3::exceptions::PyIOError;
+use pyo3::exceptions::{PyException, PyIOError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyModule};
+
+// Define custom Python exception types
+create_exception!(
+    persist,
+    PersistError,
+    PyException,
+    "Base exception for Persist operations"
+);
+create_exception!(
+    persist,
+    PersistConfigurationError,
+    PersistError,
+    "Configuration error"
+);
+create_exception!(
+    persist,
+    PersistIntegrityError,
+    PersistError,
+    "Data integrity verification failed"
+);
+create_exception!(
+    persist,
+    PersistS3Error,
+    PersistError,
+    "S3 storage operation failed"
+);
+create_exception!(
+    persist,
+    PersistCompressionError,
+    PersistError,
+    "Compression/decompression failed"
+);
 
 /// Convert a Rust PersistError to a Python exception
 fn convert_error(err: PersistError) -> PyErr {
     match err {
         PersistError::Io(io_err) => PyIOError::new_err(format!("I/O error: {io_err}")),
-        PersistError::Json(json_err) => PyIOError::new_err(format!("JSON error: {json_err}")),
-        PersistError::Compression(msg) => PyIOError::new_err(format!("Compression error: {msg}")),
-        PersistError::IntegrityCheckFailed { expected, actual } => PyIOError::new_err(format!(
-            "Integrity check failed: expected {expected}, got {actual}"
-        )),
-        PersistError::InvalidFormat(msg) => PyIOError::new_err(format!("Invalid format: {msg}")),
-        PersistError::MissingMetadata(field) => {
-            PyIOError::new_err(format!("Missing metadata: {field}"))
+        PersistError::Json(json_err) => {
+            PersistError::new_err(format!("JSON serialization error: {json_err}"))
         }
-        PersistError::Storage(msg) => PyIOError::new_err(format!("Storage error: {msg}")),
-        PersistError::Validation(msg) => PyIOError::new_err(format!("Validation error: {msg}")),
+        PersistError::Compression(msg) => {
+            PersistCompressionError::new_err(format!("Compression error: {msg}"))
+        }
+        PersistError::IntegrityCheckFailed { expected, actual } => PersistIntegrityError::new_err(
+            format!("Integrity verification failed: expected hash {expected}, got {actual}"),
+        ),
+        PersistError::InvalidFormat(msg) => {
+            PersistError::new_err(format!("Invalid snapshot format: {msg}"))
+        }
+        PersistError::MissingMetadata(field) => {
+            PersistError::new_err(format!("Missing required metadata field: {field}"))
+        }
+        PersistError::Storage(msg) => {
+            PersistError::new_err(format!("Storage operation failed: {msg}"))
+        }
+        PersistError::Validation(msg) => PersistError::new_err(format!("Validation error: {msg}")),
 
         // S3-specific errors
         PersistError::S3UploadError {
             source,
             bucket,
             key,
-        } => PyIOError::new_err(format!(
+        } => PersistS3Error::new_err(format!(
             "S3 upload failed (bucket: {bucket}, key: {key}): {source}"
         )),
         PersistError::S3DownloadError {
             source,
             bucket,
             key,
-        } => PyIOError::new_err(format!(
+        } => PersistS3Error::new_err(format!(
             "S3 download failed (bucket: {bucket}, key: {key}): {source}"
         )),
         PersistError::S3NotFound { bucket, key } => {
             use pyo3::exceptions::PyFileNotFoundError;
             PyFileNotFoundError::new_err(format!(
-                "S3 object not found (bucket: {bucket}, key: {key})"
+                "Snapshot not found in S3 (bucket: {bucket}, key: {key})"
             ))
         }
         PersistError::S3AccessDenied { bucket } => {
             use pyo3::exceptions::PyPermissionError;
-            PyPermissionError::new_err(format!("Access denied to S3 bucket: {bucket}"))
+            PyPermissionError::new_err(format!(
+                "Access denied to S3 bucket: {bucket}. Check your credentials and permissions."
+            ))
         }
         PersistError::S3Configuration(msg) => {
-            use pyo3::exceptions::PyValueError;
-            PyValueError::new_err(format!("S3 configuration error: {msg}"))
+            PersistConfigurationError::new_err(format!("S3 configuration error: {msg}"))
         }
     }
 }
@@ -411,12 +452,29 @@ fn delete_snapshot(
 /// Python module definition
 #[pymodule]
 fn persist(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    // Add main functions
     m.add_function(wrap_pyfunction!(snapshot, m)?)?;
     m.add_function(wrap_pyfunction!(restore, m)?)?;
     m.add_function(wrap_pyfunction!(get_metadata, m)?)?;
     m.add_function(wrap_pyfunction!(verify_snapshot, m)?)?;
     m.add_function(wrap_pyfunction!(snapshot_exists, m)?)?;
     m.add_function(wrap_pyfunction!(delete_snapshot, m)?)?;
+
+    // Add custom exception classes
+    m.add("PersistError", m.py().get_type::<PersistError>())?;
+    m.add(
+        "PersistConfigurationError",
+        m.py().get_type::<PersistConfigurationError>(),
+    )?;
+    m.add(
+        "PersistIntegrityError",
+        m.py().get_type::<PersistIntegrityError>(),
+    )?;
+    m.add("PersistS3Error", m.py().get_type::<PersistS3Error>())?;
+    m.add(
+        "PersistCompressionError",
+        m.py().get_type::<PersistCompressionError>(),
+    )?;
 
     // Add version info
     m.add("__version__", "0.1.0")?;

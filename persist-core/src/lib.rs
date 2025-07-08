@@ -53,11 +53,20 @@ pub use compression::{CompressionAdapter, GzipCompressor};
 pub use config::{StorageBackend, StorageConfig};
 pub use error::{PersistError, Result};
 pub use metadata::SnapshotMetadata;
+
+#[cfg(feature = "metrics")]
 pub use observability::{
     init_default_observability, init_observability, MetricsTimer, PersistMetrics,
 };
+
 pub use snapshot::{
-    create_default_engine, create_engine_from_config, create_s3_engine, SnapshotEngine,
-    SnapshotEngineInterface,
+    create_default_engine, create_engine_from_config, SnapshotEngine, SnapshotEngineInterface,
 };
-pub use storage::{LocalFileStorage, S3StorageAdapter, StorageAdapter};
+
+#[cfg(feature = "s3")]
+pub use snapshot::create_s3_engine;
+
+pub use storage::{LocalFileStorage, StorageAdapter};
+
+#[cfg(feature = "s3")]
+pub use storage::S3StorageAdapter;
