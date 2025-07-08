@@ -121,8 +121,7 @@ where
         };
 
         // Serialize the container to JSON
-        let container_json =
-            serde_json::to_string(&container).map_err(PersistError::Json)?;
+        let container_json = serde_json::to_string(&container).map_err(PersistError::Json)?;
 
         // Compress the JSON data
         let compressed_data = self.compressor.compress(container_json.as_bytes())?;
@@ -171,9 +170,8 @@ where
         let decompressed_data = self.compressor.decompress(&compressed_data)?;
 
         // Parse the JSON container
-        let container_json = String::from_utf8(decompressed_data).map_err(|e| {
-            PersistError::invalid_format(format!("Invalid UTF-8 in snapshot: {e}"))
-        })?;
+        let container_json = String::from_utf8(decompressed_data)
+            .map_err(|e| PersistError::invalid_format(format!("Invalid UTF-8 in snapshot: {e}")))?;
 
         let container: SnapshotContainer =
             serde_json::from_str(&container_json).map_err(PersistError::Json)?;
