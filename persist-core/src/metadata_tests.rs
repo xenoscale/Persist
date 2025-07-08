@@ -189,11 +189,8 @@ mod tests {
         for i in 0..10 {
             let counter_clone = Arc::clone(&counter);
             let handle = thread::spawn(move || {
-                let metadata = SnapshotMetadata::new(
-                    format!("agent_{i}"),
-                    format!("session_{i}"),
-                    i as u64,
-                );
+                let metadata =
+                    SnapshotMetadata::new(format!("agent_{i}"), format!("session_{i}"), i as u64);
                 counter_clone.fetch_add(1, Ordering::SeqCst);
                 metadata
             });
