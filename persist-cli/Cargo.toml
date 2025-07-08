@@ -7,6 +7,10 @@ license.workspace = true
 repository.workspace = true
 description = "Command-line interface for Persist agent snapshot system"
 
+[features]
+default = ["s3"]
+s3 = ["persist-core/s3"]
+
 [[bin]]
 name = "persist"
 path = "src/main.rs"

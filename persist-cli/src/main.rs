@@ -169,7 +169,7 @@ async fn list_snapshots(
     }
 }
 
-async fn list_local_snapshots(path: &str, detailed: bool) -> Result<(), anyhow::Error> {
+async fn list_local_snapshots(path: &str, _detailed: bool) -> Result<(), anyhow::Error> {
     let path = PathBuf::from(path);
     if !path.exists() {
         println!("No snapshots directory found at: {}", path.display());
@@ -221,7 +221,7 @@ async fn list_local_snapshots(path: &str, detailed: bool) -> Result<(), anyhow::
     } else {
         snapshots.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
         let table = Table::new(snapshots);
-        println!("{}", table);
+        println!("{table}");
     }
 
     Ok(())
@@ -238,7 +238,7 @@ async fn show_snapshot(
     match engine.load_snapshot(snapshot_id) {
         Ok((metadata, _data)) => {
             println!("Snapshot Details:");
-            println!("  ID: {}", snapshot_id);
+            println!("  ID: {snapshot_id}");
             println!("  Agent ID: {}", metadata.agent_id);
             println!("  Session ID: {}", metadata.session_id);
             println!("  Index: {}", metadata.snapshot_index);
@@ -250,7 +250,7 @@ async fn show_snapshot(
             println!("  Content Hash: {}", metadata.content_hash);
 
             if let Some(description) = &metadata.description {
-                println!("  Description: {}", description);
+                println!("  Description: {description}");
             }
         }
         Err(e) => {
@@ -295,10 +295,7 @@ async fn delete_snapshot(
     force: bool,
 ) -> Result<(), anyhow::Error> {
     if !force {
-        print!(
-            "Are you sure you want to delete snapshot '{}'? (y/N): ",
-            snapshot_id
-        );
+        print!("Are you sure you want to delete snapshot '{snapshot_id}'? (y/N): ");
         use std::io::{self, Write};
         io::stdout().flush()?;
 
@@ -311,7 +308,7 @@ async fn delete_snapshot(
         }
     }
 
-    let engine = create_engine_from_config(storage_config.clone())?;
+    let _engine = create_engine_from_config(storage_config.clone())?;
 
     // Get storage adapter to delete
     match storage_config.backend {
@@ -328,7 +325,7 @@ async fn delete_snapshot(
                     .s3_bucket
                     .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("S3 bucket not configured"))?;
-                let storage = S3StorageAdapter::new(bucket).await?;
+                let storage = S3StorageAdapter::new(bucket.to_string())?;
                 storage.delete(snapshot_id)?;
                 println!("✓ Snapshot deleted successfully");
             }
@@ -379,7 +376,7 @@ fn format_size(bytes: u64) -> String {
 }
 
 fn format_timestamp(timestamp: i64) -> String {
-    use chrono::{DateTime, Local, TimeZone};
+    use chrono::{Local, TimeZone};
 
     match Local.timestamp_opt(timestamp, 0) {
         chrono::LocalResult::Single(dt) => dt.format("%Y-%m-%d %H:%M:%S").to_string(),
