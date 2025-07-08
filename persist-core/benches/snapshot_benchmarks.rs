@@ -5,8 +5,8 @@ These benchmarks help identify bottlenecks and measure performance improvements.
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use persist_core::{
-    compression::NoCompression, create_default_engine, GzipCompressor, LocalFileStorage, SnapshotEngine,
-    SnapshotMetadata,
+    compression::NoCompression, create_default_engine, GzipCompressor, LocalFileStorage,
+    SnapshotEngine, SnapshotMetadata,
 };
 use rayon::prelude::*;
 use std::collections::HashMap;
@@ -255,11 +255,7 @@ fn benchmark_parallel_operations(c: &mut Criterion) {
         .map(|i| {
             (
                 generate_test_data(10), // 10KB per agent
-                SnapshotMetadata::new(
-                    format!("parallel_agent_{i}"),
-                    "parallel_session",
-                    i as u64,
-                ),
+                SnapshotMetadata::new(format!("parallel_agent_{i}"), "parallel_session", i as u64),
                 temp_dir.path().join(format!("parallel_{i}.json.gz")),
             )
         })
