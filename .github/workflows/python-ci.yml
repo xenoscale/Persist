@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# Limit permissions following principle of least privilege
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   build-and-test:
     name: Build and Test Python Package
