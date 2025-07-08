@@ -14,6 +14,21 @@ jobs:
     name: Test Rust Core
     runs-on: ubuntu-latest
     
+    services:
+      localstack:
+        image: localstack/localstack:latest
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: s3
+          DEFAULT_REGION: us-east-1
+          DEBUG: 1
+        options: >-
+          --health-cmd="curl -f http://localhost:4566/_localstack/health || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -48,12 +63,123 @@ jobs:
     - name: Build persist-core
       run: cargo build --release -p persist-core
       
-    - name: Run persist-core tests
+    - name: Run persist-core unit tests
       run: cargo test --release -p persist-core
       
     - name: Run persist-core doc tests
       run: cargo test --release -p persist-core --doc || true  # Allow doc tests to fail for now
       
+    - name: Run observability tests
+      run: cargo test --release observability_tests --verbose
+      env:
+        RUST_LOG: info
+        
+    - name: Run LocalStack integration tests
+      run: cargo test --release localstack_integration --verbose
+      env:
+        RUN_LOCALSTACK_TESTS: "1"
+        AWS_ACCESS_KEY_ID: test
+        AWS_SECRET_ACCESS_KEY: test
+        AWS_REGION: us-east-1
+        AWS_ENDPOINT_URL: http://localhost:4566
+        RUST_LOG: info
+        
+    - name: Wait for LocalStack to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:4566/_localstack/health; do sleep 2; done'
+        
+    - name: Run end-to-end tests
+      run: cargo test --release end_to_end_tests --verbose
+      env:
+        RUST_LOG: info
+      
+  observability:
+    name: Observability and Metrics Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      localstack:
+        image: localstack/localstack:latest
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: s3
+          DEFAULT_REGION: us-east-1
+          DEBUG: 1
+        options: >-
+          --health-cmd="curl -f http://localhost:4566/_localstack/health || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        override: true
+        
+    - name: Cache Cargo dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-observability-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+          
+    - name: Wait for LocalStack to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:4566/_localstack/health; do sleep 2; done'
+        
+    - name: Test observability initialization
+      run: cargo test --release test_metrics_initialization --verbose
+      env:
+        RUST_LOG: debug
+        
+    - name: Test metrics recording
+      run: cargo test --release test_metrics_recording --verbose
+      env:
+        RUST_LOG: debug
+        
+    - name: Test tracing spans generation
+      run: cargo test --release test_tracing_spans_generation --verbose
+      env:
+        RUST_LOG: debug
+        
+    - name: Test error logging and metrics
+      run: cargo test --release test_error_logging_and_metrics --verbose
+      env:
+        RUST_LOG: debug
+        
+    - name: Test concurrent operations observability
+      run: cargo test --release test_concurrent_operations_observability --verbose
+      env:
+        RUST_LOG: debug
+        
+    - name: Test LocalStack S3 observability
+      run: cargo test --release test_localstack_ --verbose
+      env:
+        RUN_LOCALSTACK_TESTS: "1"
+        AWS_ACCESS_KEY_ID: test
+        AWS_SECRET_ACCESS_KEY: test
+        AWS_REGION: us-east-1
+        AWS_ENDPOINT_URL: http://localhost:4566
+        RUST_LOG: debug
+        
+    - name: Verify metrics endpoint functionality
+      run: cargo test --release test_metrics_endpoint_functionality --verbose
+      env:
+        RUST_LOG: debug
+
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -79,6 +205,21 @@ jobs:
     name: Code Coverage
     runs-on: ubuntu-latest
     
+    services:
+      localstack:
+        image: localstack/localstack:latest
+        ports:
+          - 4566:4566
+        env:
+          SERVICES: s3
+          DEFAULT_REGION: us-east-1
+          DEBUG: 1
+        options: >-
+          --health-cmd="curl -f http://localhost:4566/_localstack/health || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -93,8 +234,19 @@ jobs:
     - name: Install cargo-tarpaulin
       run: cargo install cargo-tarpaulin
       
+    - name: Wait for LocalStack to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:4566/_localstack/health; do sleep 2; done'
+        
     - name: Generate code coverage
       run: cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
+      env:
+        RUN_LOCALSTACK_TESTS: "1"
+        AWS_ACCESS_KEY_ID: test
+        AWS_SECRET_ACCESS_KEY: test
+        AWS_REGION: us-east-1
+        AWS_ENDPOINT_URL: http://localhost:4566
+        RUST_LOG: warn  # Reduce log noise during coverage
       
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

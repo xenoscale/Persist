@@ -21,6 +21,17 @@ flate2 = "1.0"
 thiserror = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Observability dependencies
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+# OpenTelemetry dependencies temporarily disabled due to version conflicts
+# tracing-opentelemetry = "0.20"
+# opentelemetry = { version = "0.20", features = ["rt-tokio", "metrics"] }
+# opentelemetry_sdk = { version = "0.20", features = ["rt-tokio"] }
+# opentelemetry-jaeger = { version = "0.20", features = ["rt-tokio"] }
+prometheus = "0.13"
+
 # PyO3 dependencies
 pyo3 = "0.25.1"
 pyo3-build-config = "0.25.1"

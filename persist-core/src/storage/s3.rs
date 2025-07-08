@@ -13,6 +13,7 @@ use tokio::runtime::Runtime;
 use tracing::{debug, error, info, warn};
 
 use super::StorageAdapter;
+use crate::observability::MetricsTimer;
 use crate::{PersistError, Result};
 
 /// Amazon S3 storage adapter
@@ -141,6 +142,9 @@ impl S3StorageAdapter {
                         error = %e,
                         "S3 save attempt failed, retrying..."
                     );
+                    // Record retry metric
+                    crate::observability::PersistMetrics::global().record_s3_retry("put_object");
+
                     // Simple backoff - could be enhanced with exponential backoff
                     std::thread::sleep(std::time::Duration::from_millis(100 * attempts as u64));
                     continue;
@@ -151,7 +155,10 @@ impl S3StorageAdapter {
     }
 
     /// Perform a single S3 save operation
+    #[tracing::instrument(level = "debug", skip(self, data), fields(bucket = %self.bucket, key = %key, size = data.len()))]
     fn save_once(&self, data: &[u8], key: &str) -> Result<()> {
+        let timer = MetricsTimer::new("put_object");
+
         debug!(
             bucket = %self.bucket,
             key = %key,
@@ -177,16 +184,18 @@ impl S3StorageAdapter {
                     size = data.len(),
                     "Successfully saved snapshot to S3"
                 );
+                timer.finish();
                 Ok(())
             }
             Err(e) => {
-                let mapped_error = map_s3_error("put_object", e, key);
+                let mapped_error = map_s3_error("put_object", e, key, &self.bucket);
                 error!(
                     bucket = %self.bucket,
                     key = %key,
                     error = ?mapped_error,
                     "Failed to save snapshot to S3"
                 );
+                timer.finish_with_error();
                 Err(mapped_error)
             }
         }
@@ -210,6 +219,9 @@ impl S3StorageAdapter {
                         error = %e,
                         "S3 load attempt failed, retrying..."
                     );
+                    // Record retry metric
+                    crate::observability::PersistMetrics::global().record_s3_retry("get_object");
+
                     std::thread::sleep(std::time::Duration::from_millis(100 * attempts as u64));
                     continue;
                 }
@@ -219,7 +231,10 @@ impl S3StorageAdapter {
     }
 
     /// Perform a single S3 load operation
+    #[tracing::instrument(level = "debug", skip(self), fields(bucket = %self.bucket, key = %key))]
     fn load_once(&self, key: &str) -> Result<Vec<u8>> {
+        let timer = MetricsTimer::new("get_object");
+
         debug!(
             bucket = %self.bucket,
             key = %key,
@@ -249,23 +264,30 @@ impl S3StorageAdapter {
                             size = bytes.len(),
                             "Successfully loaded snapshot from S3"
                         );
+                        timer.finish();
                         Ok(bytes)
                     }
                     Err(e) => {
                         let error_msg = format!("Failed to read S3 object stream: {e}");
                         error!(bucket = %self.bucket, key = %key, error = %error_msg);
-                        Err(PersistError::storage(error_msg))
+                        timer.finish_with_error();
+                        Err(PersistError::s3_download_error(
+                            e,
+                            self.bucket.clone(),
+                            key.to_string(),
+                        ))
                     }
                 }
             }
             Err(e) => {
-                let mapped_error = map_s3_error("get_object", e, key);
+                let mapped_error = map_s3_error("get_object", e, key, &self.bucket);
                 error!(
                     bucket = %self.bucket,
                     key = %key,
                     error = ?mapped_error,
                     "Failed to load snapshot from S3"
                 );
+                timer.finish_with_error();
                 Err(mapped_error)
             }
         }
@@ -273,6 +295,7 @@ impl S3StorageAdapter {
 }
 
 impl StorageAdapter for S3StorageAdapter {
+    #[tracing::instrument(level = "info", skip(self, data), fields(bucket = %self.bucket, key = %path, size = data.len()))]
     fn save(&self, data: &[u8], path: &str) -> Result<()> {
         info!(
             bucket = %self.bucket,
@@ -280,9 +303,14 @@ impl StorageAdapter for S3StorageAdapter {
             size = data.len(),
             "Saving snapshot to S3"
         );
+
+        // Record state size metric
+        crate::observability::PersistMetrics::global().record_state_size(data.len());
+
         self.save_with_retry(data, path)
     }
 
+    #[tracing::instrument(level = "info", skip(self), fields(bucket = %self.bucket, key = %path))]
     fn load(&self, path: &str) -> Result<Vec<u8>> {
         info!(
             bucket = %self.bucket,
@@ -344,7 +372,7 @@ impl StorageAdapter for S3StorageAdapter {
                 Ok(())
             }
             Err(e) => {
-                let mapped_error = map_s3_error("delete_object", e, path);
+                let mapped_error = map_s3_error("delete_object", e, path, &self.bucket);
                 error!(
                     bucket = %self.bucket,
                     key = %path,
@@ -362,40 +390,84 @@ fn map_s3_error<E: ProvideErrorMetadata + std::fmt::Debug>(
     op: &str,
     error: aws_sdk_s3::error::SdkError<E>,
     key: &str,
+    bucket: &str,
 ) -> PersistError {
     use aws_sdk_s3::error::SdkError;
 
     match &error {
         SdkError::DispatchFailure(dispatch_err) => {
-            let msg = format!("S3 {op} request failed to dispatch: {dispatch_err:?}");
-            PersistError::storage(msg)
+            let error = std::io::Error::other(format!(
+                "S3 {op} request failed to dispatch: {dispatch_err:?}"
+            ));
+            match op {
+                "put_object" => {
+                    PersistError::s3_upload_error(error, bucket.to_string(), key.to_string())
+                }
+                "get_object" => {
+                    PersistError::s3_download_error(error, bucket.to_string(), key.to_string())
+                }
+                _ => PersistError::storage(format!("S3 {op} dispatch failure for {bucket}/{key}")),
+            }
         }
-        SdkError::TimeoutError(_) => {
-            let msg = format!("S3 {op} request timed out (key: {key})");
-            PersistError::storage(msg)
+        SdkError::TimeoutError(timeout_err) => {
+            let error = std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                format!("S3 {op} request timed out: {timeout_err:?}"),
+            );
+            match op {
+                "put_object" => {
+                    PersistError::s3_upload_error(error, bucket.to_string(), key.to_string())
+                }
+                "get_object" => {
+                    PersistError::s3_download_error(error, bucket.to_string(), key.to_string())
+                }
+                _ => PersistError::storage(format!("S3 {op} timeout for {bucket}/{key}")),
+            }
         }
         SdkError::ResponseError(response_err) => {
-            let msg = format!("S3 {op} response error: {response_err:?}");
-            PersistError::storage(msg)
+            let error = std::io::Error::other(format!("S3 {op} response error: {response_err:?}"));
+            match op {
+                "put_object" => {
+                    PersistError::s3_upload_error(error, bucket.to_string(), key.to_string())
+                }
+                "get_object" => {
+                    PersistError::s3_download_error(error, bucket.to_string(), key.to_string())
+                }
+                _ => PersistError::storage(format!("S3 {op} response error for {bucket}/{key}")),
+            }
         }
         SdkError::ServiceError(service_err) => {
             if let Some(code) = service_err.err().code() {
                 match code {
-                    "NoSuchBucket" => PersistError::storage("S3 bucket not found".to_string()),
-                    "NoSuchKey" => PersistError::storage(format!("S3 object '{key}' not found")),
-                    "AccessDenied" | "Forbidden" => PersistError::storage(
-                        "Access denied to S3 (check credentials and permissions)".to_string(),
-                    ),
-                    "InvalidBucketName" => {
-                        PersistError::storage("Invalid S3 bucket name".to_string())
+                    "NoSuchBucket" => {
+                        PersistError::s3_configuration(format!("S3 bucket '{bucket}' not found"))
                     }
+                    "NoSuchKey" => PersistError::s3_not_found(bucket.to_string(), key.to_string()),
+                    "AccessDenied" | "Forbidden" => {
+                        PersistError::s3_access_denied(bucket.to_string())
+                    }
+                    "InvalidBucketName" => PersistError::s3_configuration(format!(
+                        "Invalid S3 bucket name: '{bucket}'"
+                    )),
                     _ => {
                         let msg = format!(
                             "S3 service error ({}): {}",
                             code,
                             service_err.err().message().unwrap_or("Unknown error")
                         );
-                        PersistError::storage(msg)
+                        match op {
+                            "put_object" => PersistError::s3_upload_error(
+                                std::io::Error::other(msg),
+                                bucket.to_string(),
+                                key.to_string(),
+                            ),
+                            "get_object" => PersistError::s3_download_error(
+                                std::io::Error::other(msg),
+                                bucket.to_string(),
+                                key.to_string(),
+                            ),
+                            _ => PersistError::storage(msg),
+                        }
                     }
                 }
             } else {

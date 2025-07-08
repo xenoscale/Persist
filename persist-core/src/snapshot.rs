@@ -93,6 +93,7 @@ where
     /// * `PersistError::Json` - If the agent JSON is invalid
     /// * `PersistError::Compression` - If compression fails
     /// * `PersistError::Storage` - If saving to storage fails
+    #[tracing::instrument(level = "info", skip(self, agent_json), fields(agent_id = %metadata.agent_id, session_id = %metadata.session_id, path = %path, size = agent_json.len()))]
     pub fn save_snapshot(
         &self,
         agent_json: &str,
@@ -162,6 +163,7 @@ where
     /// * `PersistError::Json` - If JSON parsing fails
     /// * `PersistError::InvalidFormat` - If the snapshot format is incompatible
     /// * `PersistError::IntegrityCheckFailed` - If the content hash doesn't match
+    #[tracing::instrument(level = "info", skip(self), fields(path = %path))]
     pub fn load_snapshot(&self, path: &str) -> Result<(SnapshotMetadata, String)> {
         // Load compressed data from storage
         let compressed_data = self
