@@ -457,7 +457,7 @@ mod tests {
                 );
             }
             Err(e) => {
-                panic!("Unexpected error type: {:?}", e);
+                panic!("Unexpected error type: {e:?}");
             }
         }
     }

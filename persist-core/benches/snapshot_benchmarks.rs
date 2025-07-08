@@ -5,7 +5,7 @@ These benchmarks help identify bottlenecks and measure performance improvements.
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use persist_core::{
-    create_default_engine, GzipCompressor, LocalFileStorage, NoCompression, SnapshotEngine,
+    compression::NoCompression, create_default_engine, GzipCompressor, LocalFileStorage, SnapshotEngine,
     SnapshotMetadata,
 };
 use rayon::prelude::*;
@@ -59,9 +59,9 @@ fn generate_test_data(size_kb: usize) -> String {
     let facts: HashMap<String, serde_json::Value> = (0..(multiplier / 10).max(1))
         .map(|i| {
             (
-                format!("fact_{}", i),
+                format!("fact_{i}"),
                 serde_json::json!({
-                    "value": format!("This is fact number {} that the agent has learned", i),
+                    "value": format!("This is fact number {i} that the agent has learned"),
                     "confidence": 0.8 + (i % 20) as f64 * 0.01,
                     "source": format!("source_{}", i % 5),
                     "learned_at": 1640995200 + i * 3600
@@ -87,7 +87,7 @@ fn benchmark_save_operations(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(data.len() as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("save", format!("{}KB", size_kb)),
+            BenchmarkId::new("save", format!("{size_kb}KB")),
             size_kb,
             |b, &size_kb| {
                 let data = generate_test_data(size_kb);
@@ -129,7 +129,7 @@ fn benchmark_load_operations(c: &mut Criterion) {
         let metadata = SnapshotMetadata::new("benchmark_agent", "benchmark_session", 0);
         let file_path = temp_dir
             .path()
-            .join(format!("bench_load_{}.json.gz", size_kb));
+            .join(format!("bench_load_{size_kb}.json.gz"));
 
         engine
             .save_snapshot(&data, &metadata, file_path.to_str().unwrap())
@@ -141,7 +141,7 @@ fn benchmark_load_operations(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(data_len as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("load", format!("{}KB", size_kb)),
+            BenchmarkId::new("load", format!("{size_kb}KB")),
             &file_path,
             |b, file_path| {
                 b.iter(|| {
@@ -256,11 +256,11 @@ fn benchmark_parallel_operations(c: &mut Criterion) {
             (
                 generate_test_data(10), // 10KB per agent
                 SnapshotMetadata::new(
-                    &format!("parallel_agent_{}", i),
+                    format!("parallel_agent_{i}"),
                     "parallel_session",
                     i as u64,
                 ),
-                temp_dir.path().join(format!("parallel_{}.json.gz", i)),
+                temp_dir.path().join(format!("parallel_{i}.json.gz")),
             )
         })
         .collect();
@@ -327,7 +327,7 @@ fn benchmark_memory_usage(c: &mut Criterion) {
         let metadata = SnapshotMetadata::new("memory_test", "session", 0);
 
         group.bench_with_input(
-            BenchmarkId::new("memory_save", format!("{}KB", size_kb)),
+            BenchmarkId::new("memory_save", format!("{size_kb}KB")),
             size_kb,
             |b, &size_kb| {
                 b.iter(|| {
@@ -364,7 +364,7 @@ fn benchmark_roundtrip_operations(c: &mut Criterion) {
         group.throughput(Throughput::Bytes(data.len() as u64));
 
         group.bench_with_input(
-            BenchmarkId::new("save_load_roundtrip", format!("{}KB", size_kb)),
+            BenchmarkId::new("save_load_roundtrip", format!("{size_kb}KB")),
             size_kb,
             |b, &size_kb| {
                 let data = generate_test_data(size_kb);
@@ -397,7 +397,7 @@ fn benchmark_roundtrip_operations(c: &mut Criterion) {
 
                     // Verify (minimal verification to ensure correctness)
                     assert_eq!(loaded_data.len(), data.len());
-                    assert_eq!(loaded_metadata.agent_id(), "roundtrip_agent");
+                    assert_eq!(loaded_metadata.agent_id, "roundtrip_agent");
                 });
             },
         );
