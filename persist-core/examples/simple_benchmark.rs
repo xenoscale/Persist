@@ -62,7 +62,7 @@ fn main() {
     assert_eq!(loaded_data, agent_json);
     assert_eq!(loaded_metadata.agent_id, "benchmark_agent");
 
-    println!("Benchmark operation completed in: {:?}", duration);
+    println!("Benchmark operation completed in: {duration:?}");
     println!("Data size: {} bytes", agent_json.len());
     println!(
         "File size: {} bytes",
