@@ -69,65 +69,68 @@ jobs:
       
     - name: Create simple test
       run: |
-        cat > test_basic.py << 'EOF'
-        import pytest
-        import persist
-        import tempfile
-        import os
-        import json
+        python -c "
+        test_content = '''import pytest
+import persist
+import tempfile
+import os
+import json
 
-        def test_module_import():
-            """Test that the module imports correctly"""
-            assert persist.__version__ == "0.1.0"
-            assert hasattr(persist, 'snapshot')
-            assert hasattr(persist, 'restore')
-            assert hasattr(persist, 'get_metadata')
-            assert hasattr(persist, 'verify_snapshot')
-            assert hasattr(persist, 'snapshot_exists')
-            assert hasattr(persist, 'delete_snapshot')
+def test_module_import():
+    \"\"\"Test that the module imports correctly\"\"\"
+    assert persist.__version__ == \"0.1.0\"
+    assert hasattr(persist, \"snapshot\")
+    assert hasattr(persist, \"restore\")
+    assert hasattr(persist, \"get_metadata\")
+    assert hasattr(persist, \"verify_snapshot\")
+    assert hasattr(persist, \"snapshot_exists\")
+    assert hasattr(persist, \"delete_snapshot\")
 
-        def test_snapshot_operations():
-            """Test basic snapshot operations without LangChain"""
-            # Test file operations
-            with tempfile.NamedTemporaryFile(suffix='.json.gz', delete=False) as f:
-                test_path = f.name
+def test_snapshot_operations():
+    \"\"\"Test basic snapshot operations without LangChain\"\"\"
+    # Test file operations
+    with tempfile.NamedTemporaryFile(suffix=\".json.gz\", delete=False) as f:
+        test_path = f.name
+    
+    try:
+        # Test file existence
+        assert not persist.snapshot_exists(test_path)
+        
+        # Test verification of non-existent file
+        assert not persist.verify_snapshot(test_path)
+        
+    finally:
+        if os.path.exists(test_path):
+            os.unlink(test_path)
+
+def test_mock_langchain_snapshot():
+    \"\"\"Test snapshot with mock LangChain-like object\"\"\"
+    # Create a mock object that behaves like a LangChain agent
+    class MockLangChainObject:
+        def __init__(self):
+            self.data = {\"type\": \"mock_agent\", \"state\": \"test_state\"}
             
-            try:
-                # Test file existence
-                assert not persist.snapshot_exists(test_path)
-                
-                # Test verification of non-existent file
-                assert not persist.verify_snapshot(test_path)
-                
-            finally:
-                if os.path.exists(test_path):
-                    os.unlink(test_path)
-
-        def test_mock_langchain_snapshot():
-            """Test snapshot with mock LangChain-like object"""
-            # Create a mock object that behaves like a LangChain agent
-            class MockLangChainObject:
-                def __init__(self):
-                    self.data = {"type": "mock_agent", "state": "test_state"}
-                    
-                def dumps(self):
-                    return json.dumps(self.data)
-                    
-                @classmethod
-                def loads(cls, json_str):
-                    data = json.loads(json_str)
-                    obj = cls()
-                    obj.data = data
-                    return obj
+        def dumps(self):
+            return json.dumps(self.data)
             
-            # This test would require actual LangChain, so we'll skip it for basic CI
-            # But we can test the core functionality is accessible
-            mock_obj = MockLangChainObject()
-            assert mock_obj.dumps() == '{"type": "mock_agent", "state": "test_state"}'
+        @classmethod
+        def loads(cls, json_str):
+            data = json.loads(json_str)
+            obj = cls()
+            obj.data = data
+            return obj
+    
+    # This test would require actual LangChain, so we will skip it for basic CI
+    # But we can test the core functionality is accessible
+    mock_obj = MockLangChainObject()
+    assert mock_obj.dumps() == \"{\\\"type\\\": \\\"mock_agent\\\", \\\"state\\\": \\\"test_state\\\"}\"
 
-        if __name__ == "__main__":
-            pytest.main([__file__, "-v"])
-        EOF
+if __name__ == \"__main__\":
+    pytest.main([__file__, \"-v\"])
+'''
+        with open('test_basic.py', 'w') as f:
+            f.write(test_content)
+        "
         
     - name: Run basic tests
       run: python test_basic.py
@@ -204,63 +207,66 @@ jobs:
       
     - name: Create integration test
       run: |
-        cat > integration_test.py << 'EOF'
-        import persist
-        import tempfile
-        import os
-        from langchain_core.prompts import PromptTemplate
+        python -c "
+        test_content = '''import persist
+import tempfile
+import os
+from langchain_core.prompts import PromptTemplate
 
-        def test_langchain_integration():
-            """Test actual LangChain integration"""
-            try:
-                # Create a simple LangChain object
-                prompt = PromptTemplate(
-                    input_variables=["topic"],
-                    template="Tell me about {topic}"
-                )
+def test_langchain_integration():
+    \"\"\"Test actual LangChain integration\"\"\"
+    try:
+        # Create a simple LangChain object
+        prompt = PromptTemplate(
+            input_variables=[\"topic\"],
+            template=\"Tell me about {topic}\"
+        )
+        
+        # Test snapshot and restore
+        with tempfile.NamedTemporaryFile(suffix=\".json.gz\", delete=False) as f:
+            test_path = f.name
+        
+        try:
+            # Snapshot the prompt template
+            persist.snapshot(prompt, test_path, 
+                           agent_id=\"test_prompt\", 
+                           description=\"Test prompt template\")
+            
+            # Verify the snapshot exists and is valid
+            assert persist.snapshot_exists(test_path)
+            assert persist.verify_snapshot(test_path)
+            
+            # Get metadata
+            metadata = persist.get_metadata(test_path)
+            assert metadata[\"agent_id\"] == \"test_prompt\"
+            assert metadata[\"description\"] == \"Test prompt template\"
+            
+            # Restore the prompt template
+            restored_prompt = persist.restore(test_path)
+            
+            # Verify it works the same way
+            original_result = prompt.format(topic=\"Python\")
+            restored_result = restored_prompt.format(topic=\"Python\")
+            assert original_result == restored_result
+            
+            print(\"✅ LangChain integration test passed!\")
+            
+        finally:
+            if os.path.exists(test_path):
+                os.unlink(test_path)
                 
-                # Test snapshot and restore
-                with tempfile.NamedTemporaryFile(suffix='.json.gz', delete=False) as f:
-                    test_path = f.name
-                
-                try:
-                    # Snapshot the prompt template
-                    persist.snapshot(prompt, test_path, 
-                                   agent_id="test_prompt", 
-                                   description="Test prompt template")
-                    
-                    # Verify the snapshot exists and is valid
-                    assert persist.snapshot_exists(test_path)
-                    assert persist.verify_snapshot(test_path)
-                    
-                    # Get metadata
-                    metadata = persist.get_metadata(test_path)
-                    assert metadata['agent_id'] == 'test_prompt'
-                    assert metadata['description'] == 'Test prompt template'
-                    
-                    # Restore the prompt template
-                    restored_prompt = persist.restore(test_path)
-                    
-                    # Verify it works the same way
-                    original_result = prompt.format(topic="Python")
-                    restored_result = restored_prompt.format(topic="Python")
-                    assert original_result == restored_result
-                    
-                    print("✅ LangChain integration test passed!")
-                    
-                finally:
-                    if os.path.exists(test_path):
-                        os.unlink(test_path)
-                        
-            except ImportError as e:
-                print(f"⚠️ Skipping LangChain test due to import error: {e}")
-            except Exception as e:
-                print(f"❌ LangChain integration test failed: {e}")
-                raise
+    except ImportError as e:
+        print(f\"⚠️ Skipping LangChain test due to import error: {e}\")
+    except Exception as e:
+        print(f\"❌ LangChain integration test failed: {e}\")
+        raise
 
-        if __name__ == "__main__":
-            test_langchain_integration()
-        EOF
+if __name__ == \"__main__\":
+    test_langchain_integration()
+'''
+        with open('integration_test.py', 'w') as f:
+            f.write(test_content)
+        "
         
     - name: Run integration test
       run: python integration_test.py

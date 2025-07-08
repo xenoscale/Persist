@@ -498,6 +498,4 @@ mod tests {
     }
 }
 
-// Include tests module
-#[cfg(test)]
-mod s3_tests;
+// Additional S3 tests are included inline above in the main tests module
