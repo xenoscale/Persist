@@ -20,9 +20,10 @@ The core follows hexagonal architecture principles:
 
 ## Usage
 
-```rust
+```rust,no_run
 use persist_core::{SnapshotEngine, SnapshotMetadata, LocalFileStorage, GzipCompressor};
 
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 let storage = LocalFileStorage::new();
 let compressor = GzipCompressor::new();
 let engine = SnapshotEngine::new(storage, compressor);
@@ -35,6 +36,8 @@ engine.save_snapshot(agent_data, &metadata, "/path/to/snapshot.json.gz")?;
 
 // Restore snapshot
 let (restored_metadata, restored_data) = engine.load_snapshot("/path/to/snapshot.json.gz")?;
+# Ok(())
+# }
 ```
 */
 

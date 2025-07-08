@@ -29,8 +29,9 @@ use crate::{PersistError, Result};
 ///
 /// # Example
 /// ```rust,no_run
-/// use persist_core::storage::S3StorageAdapter;
+/// use persist_core::{storage::S3StorageAdapter, StorageAdapter};
 ///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// // Set environment variables:
 /// // export AWS_ACCESS_KEY_ID=your_access_key
 /// // export AWS_SECRET_ACCESS_KEY=your_secret_key
@@ -39,7 +40,8 @@ use crate::{PersistError, Result};
 /// let adapter = S3StorageAdapter::new("my-snapshots-bucket".to_string())?;
 /// let data = b"compressed snapshot data";
 /// adapter.save(data, "agent1/session1/snapshot.json.gz")?;
-/// # Ok::<(), persist_core::PersistError>(())
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug)]
 pub struct S3StorageAdapter {

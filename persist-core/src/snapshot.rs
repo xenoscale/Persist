@@ -25,9 +25,10 @@ struct SnapshotContainer {
 /// the hexagonal architecture principles.
 ///
 /// # Example
-/// ```rust
+/// ```rust,no_run
 /// use persist_core::{SnapshotEngine, SnapshotMetadata, LocalFileStorage, GzipCompressor};
 ///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let storage = LocalFileStorage::new();
 /// let compressor = GzipCompressor::new();
 /// let engine = SnapshotEngine::new(storage, compressor);
@@ -40,6 +41,8 @@ struct SnapshotContainer {
 ///
 /// // Restore snapshot
 /// let (metadata, agent_data) = engine.load_snapshot("/path/to/snapshot.json.gz")?;
+/// # Ok(())
+/// # }
 /// ```
 pub struct SnapshotEngine<S, C>
 where

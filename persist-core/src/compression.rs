@@ -45,13 +45,16 @@ pub trait CompressionAdapter {
 ///
 /// # Example
 /// ```rust
-/// use persist_core::GzipCompressor;
+/// use persist_core::{GzipCompressor, CompressionAdapter};
 ///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let compressor = GzipCompressor::new();
 /// let data = b"some agent state data to compress";
 /// let compressed = compressor.compress(data)?;
 /// let decompressed = compressor.decompress(&compressed)?;
 /// assert_eq!(data, &decompressed[..]);
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone)]
 pub struct GzipCompressor {

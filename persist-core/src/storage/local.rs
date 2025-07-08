@@ -13,14 +13,16 @@ use std::path::{Path, PathBuf};
 /// It automatically creates parent directories if they don't exist.
 ///
 /// # Example
-/// ```rust
-/// use persist_core::storage::LocalFileStorage;
+/// ```rust,no_run
+/// use persist_core::{storage::LocalFileStorage, StorageAdapter};
 ///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let storage = LocalFileStorage::new();
 /// // Will create any missing directories
 /// let data = b"compressed snapshot data";
 /// storage.save(data, "/path/to/snapshots/agent1.json.gz")?;
-/// # Ok::<(), persist_core::PersistError>(())
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone)]
 pub struct LocalFileStorage {
