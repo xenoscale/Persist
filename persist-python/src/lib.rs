@@ -32,19 +32,18 @@ use pyo3::types::{PyDict, PyModule};
 /// Convert a Rust PersistError to a Python exception
 fn convert_error(err: PersistError) -> PyErr {
     match err {
-        PersistError::Io(io_err) => PyIOError::new_err(format!("I/O error: {}", io_err)),
-        PersistError::Json(json_err) => PyIOError::new_err(format!("JSON error: {}", json_err)),
-        PersistError::Compression(msg) => PyIOError::new_err(format!("Compression error: {}", msg)),
+        PersistError::Io(io_err) => PyIOError::new_err(format!("I/O error: {io_err}")),
+        PersistError::Json(json_err) => PyIOError::new_err(format!("JSON error: {json_err}")),
+        PersistError::Compression(msg) => PyIOError::new_err(format!("Compression error: {msg}")),
         PersistError::IntegrityCheckFailed { expected, actual } => PyIOError::new_err(format!(
-            "Integrity check failed: expected {}, got {}",
-            expected, actual
+            "Integrity check failed: expected {expected}, got {actual}"
         )),
-        PersistError::InvalidFormat(msg) => PyIOError::new_err(format!("Invalid format: {}", msg)),
+        PersistError::InvalidFormat(msg) => PyIOError::new_err(format!("Invalid format: {msg}")),
         PersistError::MissingMetadata(field) => {
-            PyIOError::new_err(format!("Missing metadata: {}", field))
+            PyIOError::new_err(format!("Missing metadata: {field}"))
         }
-        PersistError::Storage(msg) => PyIOError::new_err(format!("Storage error: {}", msg)),
-        PersistError::Validation(msg) => PyIOError::new_err(format!("Validation error: {}", msg)),
+        PersistError::Storage(msg) => PyIOError::new_err(format!("Storage error: {msg}")),
+        PersistError::Validation(msg) => PyIOError::new_err(format!("Validation error: {msg}")),
     }
 }
 
@@ -72,8 +71,7 @@ fn create_storage_config(
             Ok(config)
         }
         _ => Err(PyIOError::new_err(format!(
-            "Invalid storage_mode '{}'. Must be 'local' or 's3'",
-            mode
+            "Invalid storage_mode '{mode}'. Must be 'local' or 's3'"
         ))),
     }
 }
@@ -116,6 +114,7 @@ fn create_storage_config(
 /// ```
 #[pyfunction]
 #[pyo3(signature = (agent, path, agent_id="default_agent", session_id="default_session", snapshot_index=0, description=None, storage_mode=None, s3_bucket=None, s3_region=None))]
+#[allow(clippy::too_many_arguments)]
 fn snapshot(
     py: Python<'_>,
     agent: &Bound<'_, PyAny>,
@@ -140,15 +139,13 @@ fn snapshot(
     // Serialize the agent to JSON string using LangChain's dumps
     let json_obj = dumps_func.call1((agent,)).map_err(|e| {
         PyIOError::new_err(format!(
-            "Failed to serialize agent with LangChain dumps: {}",
-            e
+            "Failed to serialize agent with LangChain dumps: {e}"
         ))
     })?;
 
     let agent_json: String = json_obj.extract().map_err(|e| {
         PyIOError::new_err(format!(
-            "Failed to extract JSON string from LangChain dumps result: {}",
-            e
+            "Failed to extract JSON string from LangChain dumps result: {e}"
         ))
     })?;
 
@@ -241,8 +238,7 @@ fn restore(
     }
     .map_err(|e| {
         PyIOError::new_err(format!(
-            "Failed to deserialize agent with LangChain loads: {}",
-            e
+            "Failed to deserialize agent with LangChain loads: {e}"
         ))
     })?;
 
