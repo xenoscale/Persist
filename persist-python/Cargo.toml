@@ -13,8 +13,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 persist-core = { path = "../persist-core" }
-pyo3 = { version = "0.22", features = ["extension-module"] }
+pyo3 = { version = "0.24.1", features = ["extension-module"] }
 serde_json.workspace = true
 
 [build-dependencies]
-pyo3-build-config = "0.22"
+pyo3-build-config = "0.24.1"

@@ -129,8 +129,8 @@ fn snapshot(
     s3_region: Option<&str>,
 ) -> PyResult<()> {
     // Import LangChain's dump function
-    let langchain_load = py.import_bound("langchain_core.load")
-        .or_else(|_| py.import_bound("langchain.load"))  // Fallback for older versions
+    let langchain_load = py.import("langchain_core.load")
+        .or_else(|_| py.import("langchain.load"))  // Fallback for older versions
         .map_err(|_| PyIOError::new_err("Could not import langchain_core.load or langchain.load. Please ensure LangChain is installed."))?;
 
     let dumps_func = langchain_load.getattr("dumps").map_err(|_| {
@@ -225,8 +225,8 @@ fn restore(
     let (_metadata, agent_json) = engine.load_snapshot(path).map_err(convert_error)?;
 
     // Import LangChain's load function
-    let langchain_load = py.import_bound("langchain_core.load")
-        .or_else(|_| py.import_bound("langchain.load"))
+    let langchain_load = py.import("langchain_core.load")
+        .or_else(|_| py.import("langchain.load"))
         .map_err(|_| PyIOError::new_err("Could not import langchain_core.load or langchain.load. Please ensure LangChain is installed."))?;
 
     let loads_func = langchain_load.getattr("loads").map_err(|_| {
@@ -274,7 +274,7 @@ fn get_metadata(
     let metadata = engine.get_snapshot_metadata(path).map_err(convert_error)?;
 
     // Convert metadata to Python dictionary
-    let dict = PyDict::new_bound(py);
+    let dict = PyDict::new(py);
     dict.set_item("agent_id", metadata.agent_id)?;
     dict.set_item("session_id", metadata.session_id)?;
     dict.set_item("snapshot_index", metadata.snapshot_index)?;
