@@ -2,6 +2,7 @@
 members = [
     "persist-core",
     "persist-python",
+    "persist-cli",
 ]
 resolver = "2"
 
@@ -35,3 +36,8 @@ prometheus = "0.14"
 # PyO3 dependencies
 pyo3 = "0.25.1"
 pyo3-build-config = "0.25.1"
+
+# CLI dependencies
+clap = { version = "4.0", features = ["derive", "env"] }
+tabled = "0.15"
+anyhow = "1.0"

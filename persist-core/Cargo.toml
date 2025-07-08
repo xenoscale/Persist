@@ -7,6 +7,12 @@ license.workspace = true
 repository.workspace = true
 description = "Core engine for agent snapshot and restore functionality"
 
+[features]
+default = ["s3", "metrics"]
+s3 = ["aws-config", "aws-sdk-s3", "aws-smithy-runtime-api"]
+metrics = ["prometheus"]
+cli = []
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
@@ -16,10 +22,10 @@ thiserror.workspace = true
 chrono.workspace = true
 uuid.workspace = true
 
-# AWS SDK dependencies for S3 storage backend
-aws-config = "1.1"
-aws-sdk-s3 = "1.96"
-aws-smithy-runtime-api = "1.0"
+# AWS SDK dependencies for S3 storage backend (optional)
+aws-config = { version = "1.1", optional = true }
+aws-sdk-s3 = { version = "1.96", optional = true }
+aws-smithy-runtime-api = { version = "1.0", optional = true }
 tokio = { version = "1.28", features = ["full"] }
 rayon = "1.8"
 
@@ -30,7 +36,7 @@ tracing-subscriber.workspace = true
 # tracing-opentelemetry.workspace = true
 # opentelemetry.workspace = true
 # opentelemetry-jaeger.workspace = true
-prometheus.workspace = true
+prometheus = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile = "3.0"
