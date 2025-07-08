@@ -6,6 +6,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Python bindings for the Persist agent snapshot system"
+build = "build.rs"
 
 [lib]
 name = "persist"
@@ -13,8 +14,15 @@ crate-type = ["cdylib"]
 
 [dependencies]
 persist-core = { path = "../persist-core" }
-pyo3 = { version = "0.24.1", features = ["extension-module"] }
+pyo3 = { workspace = true, features = ["extension-module", "abi3-py38"] }
 serde_json.workspace = true
 
 [build-dependencies]
-pyo3-build-config = "0.24.1"
+pyo3-build-config.workspace = true
+
+# Ensure compatibility with various Python versions
+[package.metadata.maturin]
+python-source = "src"
+module-name = "persist"
+bindings = "pyo3"
+compatibility = "linux"
