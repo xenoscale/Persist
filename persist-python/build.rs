@@ -41,6 +41,7 @@ fn main() {
     configure_python_linking(&config);
 
     // Set environment variables for consistent behavior
+    println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-env-changed=PYTHONPATH");
     println!("cargo:rerun-if-env-changed=PYTHON_SYS_EXECUTABLE");
     println!("cargo:rerun-if-env-changed=PYTHON");

@@ -20,10 +20,10 @@ Enterprise-grade agent snapshot and restore system for AI agents, designed to ca
 ### Installation
 
 ```bash
-# Install from wheel (after building)
-pip install persist-0.1.0-cp312-cp312-manylinux_2_34_x86_64.whl
+# Install from pre-built package (when available)
+pip install --pre persist
 
-# Or build from source
+# Or build and install from source
 cd persist-python
 maturin develop --release
 ```

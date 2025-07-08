@@ -13,6 +13,7 @@ use tokio::runtime::Runtime;
 use tracing::{debug, error, info, warn};
 
 use super::StorageAdapter;
+#[cfg(feature = "metrics")]
 use crate::observability::MetricsTimer;
 use crate::{PersistError, Result};
 
@@ -143,6 +144,7 @@ impl S3StorageAdapter {
                         "S3 save attempt failed, retrying..."
                     );
                     // Record retry metric
+                    #[cfg(feature = "metrics")]
                     crate::observability::PersistMetrics::global().record_s3_retry("put_object");
 
                     // Simple backoff - could be enhanced with exponential backoff
@@ -157,6 +159,7 @@ impl S3StorageAdapter {
     /// Perform a single S3 save operation
     #[tracing::instrument(level = "debug", skip(self, data), fields(bucket = %self.bucket, key = %key, size = data.len()))]
     fn save_once(&self, data: &[u8], key: &str) -> Result<()> {
+        #[cfg(feature = "metrics")]
         let timer = MetricsTimer::new("put_object");
 
         debug!(
@@ -184,6 +187,7 @@ impl S3StorageAdapter {
                     size = data.len(),
                     "Successfully saved snapshot to S3"
                 );
+                #[cfg(feature = "metrics")]
                 timer.finish();
                 Ok(())
             }
@@ -195,6 +199,7 @@ impl S3StorageAdapter {
                     error = ?mapped_error,
                     "Failed to save snapshot to S3"
                 );
+                #[cfg(feature = "metrics")]
                 timer.finish_with_error();
                 Err(mapped_error)
             }
@@ -220,6 +225,7 @@ impl S3StorageAdapter {
                         "S3 load attempt failed, retrying..."
                     );
                     // Record retry metric
+                    #[cfg(feature = "metrics")]
                     crate::observability::PersistMetrics::global().record_s3_retry("get_object");
 
                     std::thread::sleep(std::time::Duration::from_millis(100 * attempts as u64));
@@ -233,6 +239,7 @@ impl S3StorageAdapter {
     /// Perform a single S3 load operation
     #[tracing::instrument(level = "debug", skip(self), fields(bucket = %self.bucket, key = %key))]
     fn load_once(&self, key: &str) -> Result<Vec<u8>> {
+        #[cfg(feature = "metrics")]
         let timer = MetricsTimer::new("get_object");
 
         debug!(
@@ -264,12 +271,14 @@ impl S3StorageAdapter {
                             size = bytes.len(),
                             "Successfully loaded snapshot from S3"
                         );
+                        #[cfg(feature = "metrics")]
                         timer.finish();
                         Ok(bytes)
                     }
                     Err(e) => {
                         let error_msg = format!("Failed to read S3 object stream: {e}");
                         error!(bucket = %self.bucket, key = %key, error = %error_msg);
+                        #[cfg(feature = "metrics")]
                         timer.finish_with_error();
                         Err(PersistError::s3_download_error(
                             e,
@@ -287,6 +296,7 @@ impl S3StorageAdapter {
                     error = ?mapped_error,
                     "Failed to load snapshot from S3"
                 );
+                #[cfg(feature = "metrics")]
                 timer.finish_with_error();
                 Err(mapped_error)
             }
@@ -305,6 +315,7 @@ impl StorageAdapter for S3StorageAdapter {
         );
 
         // Record state size metric
+        #[cfg(feature = "metrics")]
         crate::observability::PersistMetrics::global().record_state_size(data.len());
 
         self.save_with_retry(data, path)

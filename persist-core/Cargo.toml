@@ -8,7 +8,7 @@ repository.workspace = true
 description = "Core engine for agent snapshot and restore functionality"
 
 [features]
-default = ["s3", "metrics"]
+default = ["s3"]
 s3 = ["aws-config", "aws-sdk-s3", "aws-smithy-runtime-api"]
 metrics = ["prometheus"]
 cli = []

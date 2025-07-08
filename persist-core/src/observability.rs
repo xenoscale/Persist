@@ -7,8 +7,11 @@ This module provides comprehensive observability features including:
 - Trace exporters (Jaeger, console)
 */
 
+#[cfg(feature = "metrics")]
 use prometheus::{Counter, Encoder, Histogram, Registry, TextEncoder};
+#[cfg(feature = "metrics")]
 use std::sync::OnceLock;
+#[cfg(feature = "metrics")]
 use std::time::Instant;
 use tracing::subscriber::set_global_default;
 // use tracing_opentelemetry::OpenTelemetryLayer; // Temporarily disabled
@@ -18,9 +21,11 @@ use tracing_subscriber::{EnvFilter, Registry as TracingRegistry};
 use crate::{PersistError, Result};
 
 /// Global metrics instance
+#[cfg(feature = "metrics")]
 static METRICS: OnceLock<PersistMetrics> = OnceLock::new();
 
 /// Metrics collection for Persist operations
+#[cfg(feature = "metrics")]
 #[derive(Debug)]
 pub struct PersistMetrics {
     // S3 operation metrics
@@ -36,6 +41,7 @@ pub struct PersistMetrics {
     registry: Registry,
 }
 
+#[cfg(feature = "metrics")]
 impl PersistMetrics {
     /// Initialize new metrics instance
     fn new() -> Result<Self> {
@@ -170,11 +176,13 @@ impl PersistMetrics {
 }
 
 /// Metrics timer helper for measuring operation durations
+#[cfg(feature = "metrics")]
 pub struct MetricsTimer {
     start: Instant,
     operation: String,
 }
 
+#[cfg(feature = "metrics")]
 impl MetricsTimer {
     /// Start a new timer for the given operation
     pub fn new(operation: impl Into<String>) -> Self {
@@ -222,6 +230,7 @@ impl MetricsTimer {
 /// Result indicating success or failure of initialization
 pub fn init_observability(enable_jaeger: bool, _jaeger_endpoint: Option<String>) -> Result<()> {
     // Initialize metrics (this sets up the global meter provider)
+    #[cfg(feature = "metrics")]
     PersistMetrics::global();
 
     // Build the tracing subscriber with JSON formatting
@@ -256,7 +265,7 @@ pub fn init_default_observability() -> Result<()> {
     init_observability(false, None)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "metrics"))]
 mod tests {
     use super::*;
 

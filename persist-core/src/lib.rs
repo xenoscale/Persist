@@ -45,6 +45,8 @@ pub mod compression;
 pub mod config;
 pub mod error;
 pub mod metadata;
+#[cfg(test)]
+mod metadata_tests;
 pub mod observability;
 pub mod snapshot;
 pub mod storage;
