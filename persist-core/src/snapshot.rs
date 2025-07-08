@@ -98,11 +98,11 @@ where
     ) -> Result<SnapshotMetadata> {
         // Parse and validate the agent JSON
         let agent_state: serde_json::Value =
-            serde_json::from_str(agent_json).map_err(|e| PersistError::Json(e))?;
+            serde_json::from_str(agent_json).map_err(PersistError::Json)?;
 
         // Normalize the JSON to ensure consistent hash computation across save/load cycles
         let normalized_agent_json =
-            serde_json::to_string(&agent_state).map_err(|e| PersistError::Json(e))?;
+            serde_json::to_string(&agent_state).map_err(PersistError::Json)?;
 
         // Update metadata with content hash and size information (using normalized JSON)
         let agent_bytes = normalized_agent_json.as_bytes();
@@ -122,7 +122,7 @@ where
 
         // Serialize the container to JSON
         let container_json =
-            serde_json::to_string(&container).map_err(|e| PersistError::Json(e))?;
+            serde_json::to_string(&container).map_err(PersistError::Json)?;
 
         // Compress the JSON data
         let compressed_data = self.compressor.compress(container_json.as_bytes())?;
@@ -133,7 +133,7 @@ where
         // Save to storage
         self.storage
             .save(&compressed_data, path)
-            .map_err(|e| PersistError::Storage(format!("Failed to save snapshot: {}", e)))?;
+            .map_err(|e| PersistError::Storage(format!("Failed to save snapshot: {e}")))?;
 
         Ok(updated_metadata)
     }
@@ -165,18 +165,18 @@ where
         let compressed_data = self
             .storage
             .load(path)
-            .map_err(|e| PersistError::Storage(format!("Failed to load snapshot: {}", e)))?;
+            .map_err(|e| PersistError::Storage(format!("Failed to load snapshot: {e}")))?;
 
         // Decompress the data
         let decompressed_data = self.compressor.decompress(&compressed_data)?;
 
         // Parse the JSON container
         let container_json = String::from_utf8(decompressed_data).map_err(|e| {
-            PersistError::invalid_format(format!("Invalid UTF-8 in snapshot: {}", e))
+            PersistError::invalid_format(format!("Invalid UTF-8 in snapshot: {e}"))
         })?;
 
         let container: SnapshotContainer =
-            serde_json::from_str(&container_json).map_err(|e| PersistError::Json(e))?;
+            serde_json::from_str(&container_json).map_err(PersistError::Json)?;
 
         // Check format compatibility
         if !container.metadata.is_compatible() {
@@ -189,7 +189,7 @@ where
 
         // Convert agent state back to JSON string (normalized format)
         let agent_json =
-            serde_json::to_string(&container.agent_state).map_err(|e| PersistError::Json(e))?;
+            serde_json::to_string(&container.agent_state).map_err(PersistError::Json)?;
 
         // Verify integrity
         container.metadata.verify_integrity(agent_json.as_bytes())?;
@@ -218,7 +218,7 @@ where
     pub fn delete_snapshot(&self, path: &str) -> Result<()> {
         self.storage
             .delete(path)
-            .map_err(|e| PersistError::Storage(format!("Failed to delete snapshot: {}", e)))
+            .map_err(|e| PersistError::Storage(format!("Failed to delete snapshot: {e}")))
     }
 
     /// Get metadata from a snapshot without loading the full agent data

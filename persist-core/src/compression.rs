@@ -109,12 +109,12 @@ impl CompressionAdapter for GzipCompressor {
         let mut encoder = GzEncoder::new(Vec::new(), self.compression_level);
 
         encoder.write_all(data).map_err(|e| {
-            PersistError::compression(format!("Failed to write data for compression: {}", e))
+            PersistError::compression(format!("Failed to write data for compression: {e}"))
         })?;
 
         encoder
             .finish()
-            .map_err(|e| PersistError::compression(format!("Failed to finish compression: {}", e)))
+            .map_err(|e| PersistError::compression(format!("Failed to finish compression: {e}")))
     }
 
     fn decompress(&self, compressed_data: &[u8]) -> Result<Vec<u8>> {
@@ -123,7 +123,7 @@ impl CompressionAdapter for GzipCompressor {
 
         decoder
             .read_to_end(&mut decompressed)
-            .map_err(|e| PersistError::compression(format!("Failed to decompress data: {}", e)))?;
+            .map_err(|e| PersistError::compression(format!("Failed to decompress data: {e}")))?;
 
         Ok(decompressed)
     }
