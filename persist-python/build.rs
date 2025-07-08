@@ -1,5 +1,6 @@
 use pyo3_build_config::{InterpreterConfig, PythonVersion};
 use std::env;
+use std::process::Command;
 
 fn main() {
     // Check if we're running under tarpaulin for special handling
@@ -52,29 +53,25 @@ fn configure_for_tarpaulin() {
     // Use ABI3 stable interface which is more compatible with different Python versions
     println!("cargo:rustc-cfg=Py_LIMITED_API");
 
-    // Try to detect Python installation
-    if let Ok(python_executable) = env::var("PYTHON").or_else(|_| env::var("PYO3_PYTHON")) {
-        println!("cargo:warning=Using Python executable: {python_executable}");
+    let python_executable = env::var("PYTHON")
+        .or_else(|_| env::var("PYO3_PYTHON"))
+        .unwrap_or_else(|_| "python3".to_string());
+
+    println!("cargo:warning=Using Python executable: {python_executable}");
+
+    // Detect Python version for more accurate linking
+    let version = detect_python_version(&python_executable);
+    println!("cargo:warning=Detected Python version: {version}");
+
+    // Try pkg-config first for the most accurate linking configuration
+    if try_pkg_config_linking() {
+        println!("cargo:warning=Successfully configured Python linking via pkg-config");
+        return;
     }
 
-    // For tarpaulin, we'll rely on ABI3 and avoid version-specific linking
-    // This prevents the PyObject_CallMethodObjArgs linking issues
-    println!("cargo:rustc-link-lib=python3");
-
-    // Add common Python library search paths
-    if let Ok(python_path) = std::process::Command::new("python3")
-        .args(["-c", "import sys; print(sys.prefix)"])
-        .output()
-    {
-        if python_path.status.success() {
-            let prefix_cow = String::from_utf8_lossy(&python_path.stdout);
-            let prefix = prefix_cow.trim();
-            println!("cargo:rustc-link-search=native={prefix}/lib");
-            println!("cargo:rustc-link-search=native={prefix}/lib/python3.12/config-3.12-x86_64-linux-gnu");
-            println!("cargo:rustc-link-search=native={prefix}/lib/python3.11/config-3.11-x86_64-linux-gnu");
-            println!("cargo:rustc-link-search=native={prefix}/lib/python3.10/config-3.10-x86_64-linux-gnu");
-        }
-    }
+    // Fallback to manual library detection and linking
+    add_python_library_paths(&python_executable);
+    link_python_library(&version);
 }
 
 fn configure_python_linking(config: &InterpreterConfig) {
@@ -111,4 +108,168 @@ fn configure_python_linking(config: &InterpreterConfig) {
             println!("cargo:rustc-link-lib=dylib={lib_name}");
         }
     }
+}
+
+fn detect_python_version(python_executable: &str) -> String {
+    if let Ok(output) = Command::new(python_executable)
+        .args([
+            "-c",
+            "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
+        ])
+        .output()
+    {
+        if output.status.success() {
+            return String::from_utf8_lossy(&output.stdout).trim().to_string();
+        }
+    }
+    "3.12".to_string() // Default fallback
+}
+
+fn try_pkg_config_linking() -> bool {
+    // Try python3-config first (more reliable for Python linking)
+    if try_python_config_linking() {
+        return true;
+    }
+
+    // Fallback to pkg-config
+    if let Ok(output) = Command::new("pkg-config")
+        .args(["--libs", "python3"])
+        .output()
+    {
+        if output.status.success() {
+            let libs = String::from_utf8_lossy(&output.stdout);
+            if !libs.trim().is_empty() {
+                // Parse and add the library flags
+                for flag in libs.split_whitespace() {
+                    if let Some(path) = flag.strip_prefix("-L") {
+                        println!("cargo:rustc-link-search=native={path}");
+                    } else if let Some(lib) = flag.strip_prefix("-l") {
+                        println!("cargo:rustc-link-lib={lib}");
+                    }
+                }
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn try_python_config_linking() -> bool {
+    let mut success = false;
+
+    // Get library search paths from python3-config --ldflags
+    if let Ok(output) = Command::new("python3-config").args(["--ldflags"]).output() {
+        if output.status.success() {
+            let ldflags = String::from_utf8_lossy(&output.stdout);
+            if !ldflags.trim().is_empty() {
+                parse_and_add_link_flags(&ldflags);
+                success = true;
+            }
+        }
+    }
+
+    // Get libraries from python3-config --libs --embed (for embedding Python >= 3.8)
+    if let Ok(output) = Command::new("python3-config")
+        .args(["--libs", "--embed"])
+        .output()
+    {
+        if output.status.success() {
+            let libs = String::from_utf8_lossy(&output.stdout);
+            if !libs.trim().is_empty() {
+                parse_and_add_link_flags(&libs);
+                success = true;
+            }
+        }
+    } else {
+        // Fallback to python3-config --libs if --embed is not supported
+        if let Ok(output) = Command::new("python3-config").args(["--libs"]).output() {
+            if output.status.success() {
+                let libs = String::from_utf8_lossy(&output.stdout);
+                if !libs.trim().is_empty() {
+                    parse_and_add_link_flags(&libs);
+                    success = true;
+                }
+            }
+        }
+    }
+
+    success
+}
+
+fn parse_and_add_link_flags(libs: &str) {
+    // Parse and add the library flags
+    for flag in libs.split_whitespace() {
+        if let Some(path) = flag.strip_prefix("-L") {
+            println!("cargo:rustc-link-search=native={path}");
+        } else if let Some(lib) = flag.strip_prefix("-l") {
+            println!("cargo:rustc-link-lib={lib}");
+        }
+    }
+}
+
+fn add_python_library_paths(python_executable: &str) {
+    // Add common Python library search paths
+    let search_paths = ["/usr/local/lib", "/usr/lib", "/usr/lib/x86_64-linux-gnu"];
+
+    for path in &search_paths {
+        println!("cargo:rustc-link-search=native={path}");
+    }
+
+    // Get Python prefix and add its lib directory
+    if let Ok(output) = Command::new(python_executable)
+        .args(["-c", "import sys; print(sys.prefix)"])
+        .output()
+    {
+        if output.status.success() {
+            let prefix = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            println!("cargo:rustc-link-search=native={prefix}/lib");
+
+            // Add version-specific config directories
+            if let Ok(version_output) = Command::new(python_executable)
+                .args([
+                    "-c",
+                    "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
+                ])
+                .output()
+            {
+                if version_output.status.success() {
+                    let version = String::from_utf8_lossy(&version_output.stdout)
+                        .trim()
+                        .to_string();
+                    println!("cargo:rustc-link-search=native={prefix}/lib/python{version}/config-{version}-x86_64-linux-gnu");
+                }
+            }
+        }
+    }
+}
+
+fn link_python_library(version: &str) {
+    // Try to link with the most specific Python library available
+    let lib_names = [format!("python{version}"), "python3".to_string()];
+
+    for lib_name in &lib_names {
+        if try_link_library(lib_name) {
+            println!("cargo:warning=Successfully linked with {lib_name}");
+            return;
+        }
+    }
+
+    // Fallback: try dynamic lookup for PyO3 extension modules
+    println!("cargo:warning=Using dynamic lookup for Python symbols");
+    println!("cargo:rustc-link-arg=-undefined");
+    println!("cargo:rustc-link-arg=dynamic_lookup");
+}
+
+fn try_link_library(lib_name: &str) -> bool {
+    // Check if the library exists in the search paths
+    let search_paths = ["/usr/local/lib", "/usr/lib", "/usr/lib/x86_64-linux-gnu"];
+
+    for path in search_paths {
+        let lib_path = format!("{path}/lib{lib_name}.so");
+        if std::path::Path::new(&lib_path).exists() {
+            println!("cargo:rustc-link-lib={lib_name}");
+            return true;
+        }
+    }
+    false
 }
