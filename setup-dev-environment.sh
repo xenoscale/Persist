@@ -201,6 +201,16 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Check if a rustup component is installed
+rustup_component_exists() {
+    local component="$1"
+    if command_exists rustup; then
+        rustup component list --installed 2>/dev/null | grep -q "^$component"
+    else
+        return 1
+    fi
+}
+
 # Get version of a tool
 get_version() {
     local tool="$1"
@@ -212,6 +222,21 @@ get_version() {
             ;;
         "cargo")
             version=$(cargo --version 2>/dev/null | cut -d' ' -f2 || echo "unknown")
+            ;;
+        "rustfmt")
+            if rustup_component_exists "rustfmt"; then
+                version=$(rustfmt --version 2>/dev/null | cut -d' ' -f2 || echo "installed")
+            else
+                version="not found"
+            fi
+            ;;
+        "clippy")
+            if rustup_component_exists "clippy"; then
+                # Try to get clippy version via cargo clippy
+                version=$(cargo clippy --version 2>/dev/null | cut -d' ' -f2 || echo "installed")
+            else
+                version="not found"
+            fi
             ;;
         "python3")
             version=$(python3 --version 2>/dev/null | cut -d' ' -f2 || echo "unknown")
@@ -281,7 +306,7 @@ install_homebrew() {
 # Install a tool using the appropriate package manager
 install_tool() {
     local tool="$1"
-    local success=false
+    local success=1
     
     local description=$(get_tool_description "$tool")
     local install_cmd=$(get_tool_install_command "$tool")
@@ -298,20 +323,21 @@ install_tool() {
             if ! command_exists rustup; then
                 print_info "Installing Rust toolchain via rustup..."
                 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+                install_result=$?
                 source ~/.cargo/env
-                success=true
+                success=$install_result
             else
                 print_info "Rust toolchain already available via rustup"
-                success=true
+                success=0
             fi
             ;;
         "rustfmt"|"clippy")
             if command_exists rustup; then
                 rustup component add "$tool"
-                success=true
+                success=$?
             else
                 print_error "rustup not found. Install Rust first."
-                success=false
+                success=1
             fi
             ;;
         "python3")
@@ -321,10 +347,10 @@ install_tool() {
         "pip")
             if command_exists python3; then
                 python3 -m ensurepip --upgrade
-                success=true
+                success=$?
             else
                 print_error "python3 not found. Install Python first."
-                success=false
+                success=1
             fi
             ;;
         "maturin"|"black"|"ruff"|"mypy"|"pytest")
@@ -337,7 +363,7 @@ install_tool() {
             ;;
         *)
             print_warning "Don't know how to install $tool automatically"
-            success=false
+            success=1
             ;;
     esac
     
@@ -439,7 +465,17 @@ check_tools() {
         local description=$(get_tool_description "$tool")
         local version=$(get_version "$tool")
         
-        if command_exists "$tool"; then
+        # Check tool availability (with special handling for rustup components)
+        local tool_available=false
+        if [ "$tool" = "clippy" ] || [ "$tool" = "rustfmt" ]; then
+            if rustup_component_exists "$tool"; then
+                tool_available=true
+            fi
+        elif command_exists "$tool"; then
+            tool_available=true
+        fi
+        
+        if [ "$tool_available" = true ]; then
             # Special check for Python version
             if [ "$tool" = "python3" ] && ! check_python_version; then
                 missing_required+=("$tool")
@@ -542,7 +578,17 @@ check_tools_final() {
         local status=$(get_tool_type "$tool")
         if [ "$status" = "required" ] || [ "$status" = "recommended" ]; then
             total_count=$((total_count + 1))
-            if command_exists "$tool"; then
+            # Check tool availability (with special handling for rustup components)
+            local tool_available=false
+            if [ "$tool" = "clippy" ] || [ "$tool" = "rustfmt" ]; then
+                if rustup_component_exists "$tool"; then
+                    tool_available=true
+                fi
+            elif command_exists "$tool"; then
+                tool_available=true
+            fi
+            
+            if [ "$tool_available" = true ]; then
                 if [ "$tool" = "python3" ] && ! check_python_version; then
                     continue
                 fi
