@@ -3,22 +3,40 @@
 PYO3_PYTHON = { value = "python3", relative = false }
 
 # Configuration for different target environments
+
+# Linux x86_64 - Use GNU ld specific flags for proper Python linking
 [target.x86_64-unknown-linux-gnu]
 rustflags = [
     "-C", "link-arg=-Wl,--no-as-needed"
 ]
 
+# Linux aarch64 (ARM64) - Same as x86_64 Linux
+[target.aarch64-unknown-linux-gnu]
+rustflags = [
+    "-C", "link-arg=-Wl,--no-as-needed"
+]
+
+# macOS x86_64 (Intel) - Use dynamic lookup for Python extensions
 [target.x86_64-apple-darwin] 
 rustflags = [
     "-C", "link-arg=-undefined",
     "-C", "link-arg=dynamic_lookup"
 ]
 
+# macOS ARM64 (Apple Silicon) - Use dynamic lookup for Python extensions
 [target.aarch64-apple-darwin]
 rustflags = [
     "-C", "link-arg=-undefined", 
     "-C", "link-arg=dynamic_lookup"
 ]
+
+# Windows x86_64 - Use standard linking (no special flags needed)
+[target.x86_64-pc-windows-msvc]
+rustflags = []
+
+# Windows x86_64 GNU - For MinGW builds
+[target.x86_64-pc-windows-gnu]
+rustflags = []
 
 # Tarpaulin-specific configuration
 [profile.test]
