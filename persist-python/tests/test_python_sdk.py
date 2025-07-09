@@ -3,20 +3,22 @@ Comprehensive tests for the Python SDK of Persist.
 These tests verify the Python interface and integration with LangChain.
 """
 
-import pytest
-import tempfile
-import os
 import json
-import time
+import os
+import tempfile
 import threading
+import time
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
+import pytest
 
 # Mock LangChain for testing if not available
 try:
-    from langchain.schema import BaseMessage, HumanMessage, AIMessage
     from langchain.memory import ConversationBufferMemory
+    from langchain.schema import AIMessage, BaseMessage, HumanMessage
     from langchain.schema.runnable import Runnable
+
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
@@ -144,14 +146,14 @@ class TestPersistSDK:
         invalid_path = "/invalid/nonexistent/path/snapshot.json.gz"
         
         with patch('persist.dumps', return_value=agent.dumps()):
-            with pytest.raises(Exception):  # Should raise an IO error
+            with pytest.raises((OSError, PermissionError)):  # Should raise an IO error
                 persist.snapshot(agent, invalid_path)
 
     def test_restore_nonexistent_file(self):
         """Test restore with nonexistent file."""
         nonexistent_path = "/nonexistent/file.json.gz"
         
-        with pytest.raises(Exception):  # Should raise an IO error
+        with pytest.raises((FileNotFoundError, OSError)):  # Should raise an IO error
             persist.restore(nonexistent_path)
 
     def test_snapshot_empty_data(self, temp_dir):
@@ -345,7 +347,7 @@ class TestPersistSDK:
         snapshot_path = os.path.join(temp_dir, "bad_snapshot.json.gz")
         
         with patch('persist.dumps', return_value="{ invalid json"):
-            with pytest.raises(Exception):  # Should raise JSON parsing error
+            with pytest.raises((ValueError, json.JSONDecodeError)):  # Should raise JSON parsing error
                 persist.snapshot(agent, snapshot_path)
 
     def test_performance_benchmarks(self, temp_dir):
@@ -370,10 +372,13 @@ class TestPersistSDK:
             }
             
             class MockAgent:
+                def __init__(self, data_to_dump):
+                    self.data_to_dump = data_to_dump
+                
                 def dumps(self):
-                    return json.dumps(data)
+                    return json.dumps(self.data_to_dump)
             
-            agent = MockAgent()
+            agent = MockAgent(data)
             snapshot_path = os.path.join(temp_dir, f"perf_{size_name}.json.gz")
             
             with patch('persist.dumps', return_value=json.dumps(data)):
@@ -385,7 +390,7 @@ class TestPersistSDK:
                     
                     # Measure load performance
                     start_time = time.time()
-                    restored_agent = persist.restore(snapshot_path)
+                    _ = persist.restore(snapshot_path)
                     load_time = time.time() - start_time
                     
                     file_size = os.path.getsize(snapshot_path)
