@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Test script to validate the build-and-test.sh fix for Python test module import issue
-# This script tests different scenarios to ensure the fix works correctly
+# Build Script Validation Tool
+# This script validates that build-and-test.sh works correctly under different scenarios
+# including when dependencies like maturin are missing
 
 set -e
 
