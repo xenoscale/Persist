@@ -1,0 +1,132 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "persist"
+version = "0.1.0"
+description = "Enterprise-grade agent snapshot and restore system"
+authors = [
+    { name = "MiniMax Agent", email = "agent@minimax.com" }
+]
+license = { text = "Proprietary" }
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["ai", "agents", "snapshot", "restore", "langchain", "persistence"]
+
+# Runtime dependencies
+dependencies = [
+    "langchain-core>=0.1.0",
+]
+
+# Optional dependencies for different use cases
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "langchain>=0.1.0",
+    "openai>=1.0.0",  # For testing with OpenAI models
+    "maturin>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+full = [
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.1",
+    "langchain-openai>=0.0.1",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.11.0",
+    "moto>=4.2.0",  # For mocking AWS services
+]
+
+[project.urls]
+Homepage = "https://github.com/xenoscale/Persist"
+Repository = "https://github.com/xenoscale/Persist.git"
+Documentation = "https://github.com/xenoscale/Persist/blob/main/README.md"
+
+[tool.maturin]
+module-name = "persist"
+strip = true
+include = [
+    { path = "persist.pyi", format = "wheel" },
+]
+
+# Python tooling configuration
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+files = ["persist.pyi"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = [
+    "tests",
+]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+    "s3: marks tests that require S3 setup",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.coverage.run]
+source = ["persist"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]

@@ -1,0 +1,55 @@
+[package]
+name = "persist-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core engine for agent snapshot and restore functionality"
+
+[features]
+default = ["s3", "gcs"]
+s3 = ["aws-config", "aws-sdk-s3", "aws-smithy-runtime-api"]
+gcs = ["google-cloud-storage", "google-cloud-auth"]
+metrics = ["prometheus"]
+cli = []
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+flate2.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+
+# AWS SDK dependencies for S3 storage backend (optional)
+aws-config = { version = "1.1", optional = true }
+aws-sdk-s3 = { version = "1.96", optional = true }
+aws-smithy-runtime-api = { version = "1.0", optional = true }
+
+# GCP SDK dependencies for GCS storage backend (optional)
+google-cloud-storage = { version = "0.24", optional = true }
+google-cloud-auth = { version = "0.16", optional = true }
+tokio = { version = "1.28", features = ["full"] }
+rayon = "1.8"
+
+# Observability dependencies
+tracing.workspace = true
+tracing-subscriber.workspace = true
+# OpenTelemetry dependencies temporarily disabled due to version conflicts
+# tracing-opentelemetry.workspace = true
+# opentelemetry.workspace = true
+# opentelemetry-jaeger.workspace = true
+prometheus = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile = "3.0"
+mockall = "0.11"
+criterion = { version = "0.5", features = ["html_reports"] }
+dhat = "0.3"
+rand = "0.8"
+
+[[bench]]
+name = "snapshot_benchmarks"
+harness = false
