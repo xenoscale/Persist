@@ -3,6 +3,7 @@
 # Persist Development Environment Setup Script
 # Cross-platform tool validation and installation for Unix-like systems
 # Supports: macOS (Intel & Apple Silicon), Linux (Ubuntu, Debian, RHEL, CentOS, Fedora, Arch)
+# Compatible with bash 3.x (macOS default) and bash 4.x+ (Linux default)
 # Usage: ./setup-dev-environment.sh [OPTIONS]
 
 set -e
@@ -25,72 +26,101 @@ DRY_RUN=false
 INSTALLED_COUNT=0
 MISSING_COUNT=0
 
-# Tool lists
-declare -A TOOLS
-declare -A TOOL_DESCRIPTIONS
-declare -A INSTALL_COMMANDS
-declare -A VERSIONS
+# Tool lists (bash 3.x compatible - using regular arrays)
+TOOL_NAMES=(
+    "rustc" "cargo" "rustfmt" "clippy"
+    "python3" "pip" "maturin" "black" "ruff" "mypy" "pytest"
+    "git" "make" "cmake"
+)
 
-# Initialize tool definitions
+TOOL_TYPES=(
+    "required" "required" "recommended" "recommended"
+    "required" "required" "recommended" "recommended" "recommended" "optional" "recommended"
+    "required" "recommended" "optional"
+)
+
+TOOL_DESCRIPTIONS=(
+    "Rust compiler"
+    "Rust package manager"
+    "Rust code formatter"
+    "Rust linter"
+    "Python interpreter (3.8+)"
+    "Python package installer"
+    "Python extension builder"
+    "Python code formatter"
+    "Python linter"
+    "Python type checker"
+    "Python testing framework"
+    "Version control system"
+    "Build automation tool"
+    "Cross-platform build system"
+)
+
+TOOL_INSTALL_COMMANDS=(
+    "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    "rustup component add rustfmt"
+    "rustup component add clippy"
+    "[System package manager] or python.org"
+    "python3 -m ensurepip --upgrade"
+    "pip install maturin"
+    "pip install black"
+    "pip install ruff"
+    "pip install mypy"
+    "pip install pytest pytest-cov"
+    "[System package manager]"
+    "[System package manager]"
+    "[System package manager]"
+)
+
+# Helper functions for array lookups (bash 3.x compatible)
+get_tool_index() {
+    local tool_name="$1"
+    local i=0
+    for tool in "${TOOL_NAMES[@]}"; do
+        if [ "$tool" = "$tool_name" ]; then
+            echo $i
+            return 0
+        fi
+        i=$((i + 1))
+    done
+    echo -1
+}
+
+get_tool_type() {
+    local tool_name="$1"
+    local index=$(get_tool_index "$tool_name")
+    if [ "$index" -ge 0 ]; then
+        echo "${TOOL_TYPES[$index]}"
+    else
+        echo "unknown"
+    fi
+}
+
+get_tool_description() {
+    local tool_name="$1"
+    local index=$(get_tool_index "$tool_name")
+    if [ "$index" -ge 0 ]; then
+        echo "${TOOL_DESCRIPTIONS[$index]}"
+    else
+        echo "Unknown tool"
+    fi
+}
+
+get_tool_install_command() {
+    local tool_name="$1"
+    local index=$(get_tool_index "$tool_name")
+    if [ "$index" -ge 0 ]; then
+        echo "${TOOL_INSTALL_COMMANDS[$index]}"
+    else
+        echo "Unknown installation method"
+    fi
+}
+
+# Initialize tool definitions (now just a placeholder for compatibility)
 init_tools() {
-    # Core tools
-    TOOLS["rustc"]="required"
-    TOOL_DESCRIPTIONS["rustc"]="Rust compiler"
-    INSTALL_COMMANDS["rustc"]="curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-    
-    TOOLS["cargo"]="required"
-    TOOL_DESCRIPTIONS["cargo"]="Rust package manager"
-    INSTALL_COMMANDS["cargo"]="curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-    
-    TOOLS["rustfmt"]="recommended"
-    TOOL_DESCRIPTIONS["rustfmt"]="Rust code formatter"
-    INSTALL_COMMANDS["rustfmt"]="rustup component add rustfmt"
-    
-    TOOLS["clippy"]="recommended"
-    TOOL_DESCRIPTIONS["clippy"]="Rust linter"
-    INSTALL_COMMANDS["clippy"]="rustup component add clippy"
-    
-    # Python tools
-    TOOLS["python3"]="required"
-    TOOL_DESCRIPTIONS["python3"]="Python interpreter (3.8+)"
-    INSTALL_COMMANDS["python3"]="[System package manager] or python.org"
-    
-    TOOLS["pip"]="required"
-    TOOL_DESCRIPTIONS["pip"]="Python package installer"
-    INSTALL_COMMANDS["pip"]="python3 -m ensurepip --upgrade"
-    
-    TOOLS["maturin"]="recommended"
-    TOOL_DESCRIPTIONS["maturin"]="Python extension builder"
-    INSTALL_COMMANDS["maturin"]="pip install maturin"
-    
-    TOOLS["black"]="recommended"
-    TOOL_DESCRIPTIONS["black"]="Python code formatter"
-    INSTALL_COMMANDS["black"]="pip install black"
-    
-    TOOLS["ruff"]="recommended"
-    TOOL_DESCRIPTIONS["ruff"]="Python linter"
-    INSTALL_COMMANDS["ruff"]="pip install ruff"
-    
-    TOOLS["mypy"]="optional"
-    TOOL_DESCRIPTIONS["mypy"]="Python type checker"
-    INSTALL_COMMANDS["mypy"]="pip install mypy"
-    
-    TOOLS["pytest"]="recommended"
-    TOOL_DESCRIPTIONS["pytest"]="Python testing framework"
-    INSTALL_COMMANDS["pytest"]="pip install pytest pytest-cov"
-    
-    # Build tools
-    TOOLS["git"]="required"
-    TOOL_DESCRIPTIONS["git"]="Version control system"
-    INSTALL_COMMANDS["git"]="[System package manager]"
-    
-    TOOLS["make"]="recommended"
-    TOOL_DESCRIPTIONS["make"]="Build automation tool"
-    INSTALL_COMMANDS["make"]="[System package manager]"
-    
-    TOOLS["cmake"]="optional"
-    TOOL_DESCRIPTIONS["cmake"]="Cross-platform build system"
-    INSTALL_COMMANDS["cmake"]="[System package manager]"
+    # Arrays are already initialized above
+    return 0
 }
 
 # Print functions
@@ -253,10 +283,13 @@ install_tool() {
     local tool="$1"
     local success=false
     
-    print_info "Installing $tool (${TOOL_DESCRIPTIONS[$tool]})..."
+    local description=$(get_tool_description "$tool")
+    local install_cmd=$(get_tool_install_command "$tool")
+    
+    print_info "Installing $tool ($description)..."
     
     if [ "$DRY_RUN" = true ]; then
-        print_info "[DRY RUN] Would install $tool using: ${INSTALL_COMMANDS[$tool]}"
+        print_info "[DRY RUN] Would install $tool using: $install_cmd"
         return 0
     fi
     
@@ -401,36 +434,37 @@ check_tools() {
     local missing_recommended=()
     local missing_optional=()
     
-    for tool in "${!TOOLS[@]}"; do
-        local status="${TOOLS[$tool]}"
+    for tool in "${TOOL_NAMES[@]}"; do
+        local status=$(get_tool_type "$tool")
+        local description=$(get_tool_description "$tool")
         local version=$(get_version "$tool")
         
         if command_exists "$tool"; then
             # Special check for Python version
             if [ "$tool" = "python3" ] && ! check_python_version; then
                 missing_required+=("$tool")
-                print_error "✗ $tool ($version) - ${TOOL_DESCRIPTIONS[$tool]} - VERSION TOO OLD"
+                print_error "✗ $tool ($version) - $description - VERSION TOO OLD"
             else
                 installed_tools+=("$tool")
-                print_success "✓ $tool ($version) - ${TOOL_DESCRIPTIONS[$tool]}"
-                ((INSTALLED_COUNT++))
+                print_success "✓ $tool ($version) - $description"
+                INSTALLED_COUNT=$((INSTALLED_COUNT + 1))
             fi
         else
             case $status in
                 "required")
                     missing_required+=("$tool")
-                    print_error "✗ $tool - ${TOOL_DESCRIPTIONS[$tool]} [REQUIRED]"
+                    print_error "✗ $tool - $description [REQUIRED]"
                     ;;
                 "recommended")
                     missing_recommended+=("$tool")
-                    print_warning "✗ $tool - ${TOOL_DESCRIPTIONS[$tool]} [RECOMMENDED]"
+                    print_warning "✗ $tool - $description [RECOMMENDED]"
                     ;;
                 "optional")
                     missing_optional+=("$tool")
-                    print_info "✗ $tool - ${TOOL_DESCRIPTIONS[$tool]} [OPTIONAL]"
+                    print_info "✗ $tool - $description [OPTIONAL]"
                     ;;
             esac
-            ((MISSING_COUNT++))
+            MISSING_COUNT=$((MISSING_COUNT + 1))
         fi
     done
     
@@ -447,8 +481,10 @@ check_tools() {
         echo
         print_error "❌ Missing Required Tools (${#missing_required[@]}):"
         for tool in "${missing_required[@]}"; do
-            echo "  ❌ $tool - ${TOOL_DESCRIPTIONS[$tool]}"
-            echo "     Install: ${INSTALL_COMMANDS[$tool]}"
+            local description=$(get_tool_description "$tool")
+            local install_cmd=$(get_tool_install_command "$tool")
+            echo "  ❌ $tool - $description"
+            echo "     Install: $install_cmd"
         done
     fi
     
@@ -456,8 +492,10 @@ check_tools() {
         echo
         print_warning "⚠️  Missing Recommended Tools (${#missing_recommended[@]}):"
         for tool in "${missing_recommended[@]}"; do
-            echo "  ⚠️  $tool - ${TOOL_DESCRIPTIONS[$tool]}"
-            echo "     Install: ${INSTALL_COMMANDS[$tool]}"
+            local description=$(get_tool_description "$tool")
+            local install_cmd=$(get_tool_install_command "$tool")
+            echo "  ⚠️  $tool - $description"
+            echo "     Install: $install_cmd"
         done
     fi
     
@@ -465,8 +503,10 @@ check_tools() {
         echo
         print_info "ℹ️  Missing Optional Tools (${#missing_optional[@]}):"
         for tool in "${missing_optional[@]}"; do
-            echo "  ℹ️  $tool - ${TOOL_DESCRIPTIONS[$tool]}"
-            echo "     Install: ${INSTALL_COMMANDS[$tool]}"
+            local description=$(get_tool_description "$tool")
+            local install_cmd=$(get_tool_install_command "$tool")
+            echo "  ℹ️  $tool - $description"
+            echo "     Install: $install_cmd"
         done
     fi
     
@@ -498,15 +538,15 @@ check_tools_final() {
     local success_count=0
     local total_count=0
     
-    for tool in "${!TOOLS[@]}"; do
-        local status="${TOOLS[$tool]}"
+    for tool in "${TOOL_NAMES[@]}"; do
+        local status=$(get_tool_type "$tool")
         if [ "$status" = "required" ] || [ "$status" = "recommended" ]; then
-            ((total_count++))
+            total_count=$((total_count + 1))
             if command_exists "$tool"; then
                 if [ "$tool" = "python3" ] && ! check_python_version; then
                     continue
                 fi
-                ((success_count++))
+                success_count=$((success_count + 1))
                 print_success "✓ $tool"
             else
                 print_error "✗ $tool"
