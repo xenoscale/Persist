@@ -6,9 +6,10 @@ follow-exec = true
 post-args = ["--", "--test-threads=1"]
 exclude-files = [
     "target/*",
-    "persist-python/src/lib_broken.rs",
-    "persist-python/src/lib_old.rs", 
-    "persist-python/src/lib_error.rs"
+    "tests/*",
+    "*/tests/*",
+    "*_tests.rs",
+    "*/test_*.py"
 ]
 
 # Environment variables for tarpaulin execution

@@ -196,6 +196,7 @@ pub enum PersistError {
 | Algorithm | Ratio | Speed | Use Case |
 |-----------|-------|-------|----------|
 | Gzip | Good | Moderate | General purpose (current) |
+| None | N/A | Instant | No compression (available) |
 | Zstd | Better | Fast | Future: High throughput |
 | LZ4 | Lower | Very Fast | Future: Real-time scenarios |
 

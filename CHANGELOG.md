@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced CI/CD workflows with comprehensive testing
 
 ### Changed
+- **BREAKING**: Removed "metrics" from default features - users need to explicitly enable `metrics` feature for Prometheus support
 - Improved error mapping between Rust and Python
 - Enhanced observability with structured logging and metrics
 - Standardized project structure and naming conventions
