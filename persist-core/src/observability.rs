@@ -34,6 +34,12 @@ pub struct PersistMetrics {
     pub s3_latency_seconds: Histogram,
     pub s3_retries_total: Counter,
 
+    // GCS operation metrics
+    pub gcs_requests_total: Counter,
+    pub gcs_errors_total: Counter,
+    pub gcs_latency_seconds: Histogram,
+    pub gcs_retries_total: Counter,
+
     // State size metrics
     pub state_size_bytes: Histogram,
 
@@ -81,6 +87,39 @@ impl PersistMetrics {
             PersistError::storage(format!("Failed to create s3_retries_total metric: {e}"))
         })?;
 
+        // Initialize GCS metrics
+        let gcs_requests_total = Counter::new(
+            "persist_gcs_requests_total",
+            "Total GCS requests made by Persist",
+        )
+        .map_err(|e| {
+            PersistError::storage(format!("Failed to create gcs_requests_total metric: {e}"))
+        })?;
+
+        let gcs_errors_total = Counter::new(
+            "persist_gcs_errors_total",
+            "Total GCS request errors in Persist",
+        )
+        .map_err(|e| {
+            PersistError::storage(format!("Failed to create gcs_errors_total metric: {e}"))
+        })?;
+
+        let gcs_latency_seconds = Histogram::with_opts(prometheus::HistogramOpts::new(
+            "persist_gcs_latency_seconds",
+            "Duration of GCS operations in seconds",
+        ))
+        .map_err(|e| {
+            PersistError::storage(format!("Failed to create gcs_latency_seconds metric: {e}"))
+        })?;
+
+        let gcs_retries_total = Counter::new(
+            "persist_gcs_retries_total",
+            "Total GCS retry attempts in Persist",
+        )
+        .map_err(|e| {
+            PersistError::storage(format!("Failed to create gcs_retries_total metric: {e}"))
+        })?;
+
         let state_size_bytes = Histogram::with_opts(prometheus::HistogramOpts::new(
             "persist_state_size_bytes",
             "Size of agent state in bytes",
@@ -120,11 +159,40 @@ impl PersistMetrics {
                 PersistError::storage(format!("Failed to register state_size_bytes: {e}"))
             })?;
 
+        // Register GCS metrics
+        registry
+            .register(Box::new(gcs_requests_total.clone()))
+            .map_err(|e| {
+                PersistError::storage(format!("Failed to register gcs_requests_total: {e}"))
+            })?;
+
+        registry
+            .register(Box::new(gcs_errors_total.clone()))
+            .map_err(|e| {
+                PersistError::storage(format!("Failed to register gcs_errors_total: {e}"))
+            })?;
+
+        registry
+            .register(Box::new(gcs_latency_seconds.clone()))
+            .map_err(|e| {
+                PersistError::storage(format!("Failed to register gcs_latency_seconds: {e}"))
+            })?;
+
+        registry
+            .register(Box::new(gcs_retries_total.clone()))
+            .map_err(|e| {
+                PersistError::storage(format!("Failed to register gcs_retries_total: {e}"))
+            })?;
+
         Ok(Self {
             s3_requests_total,
             s3_errors_total,
             s3_latency_seconds,
             s3_retries_total,
+            gcs_requests_total,
+            gcs_errors_total,
+            gcs_latency_seconds,
+            gcs_retries_total,
             state_size_bytes,
             registry,
         })
@@ -153,6 +221,26 @@ impl PersistMetrics {
     /// Record an S3 retry
     pub fn record_s3_retry(&self, _operation: &str) {
         self.s3_retries_total.inc();
+    }
+
+    /// Record a GCS request
+    pub fn record_gcs_request(&self, _operation: &str) {
+        self.gcs_requests_total.inc();
+    }
+
+    /// Record a GCS error
+    pub fn record_gcs_error(&self, _operation: &str) {
+        self.gcs_errors_total.inc();
+    }
+
+    /// Record GCS operation latency
+    pub fn record_gcs_latency(&self, _operation: &str, duration: std::time::Duration) {
+        self.gcs_latency_seconds.observe(duration.as_secs_f64());
+    }
+
+    /// Record a GCS retry
+    pub fn record_gcs_retry(&self, _operation: &str) {
+        self.gcs_retries_total.inc();
     }
 
     /// Record state size
@@ -195,6 +283,28 @@ impl MetricsTimer {
         }
     }
 
+    /// Start a new timer for S3 operations
+    pub fn start_s3_operation(operation: impl Into<String>) -> Self {
+        let operation = operation.into();
+        PersistMetrics::global().record_s3_request(&operation);
+
+        Self {
+            start: Instant::now(),
+            operation,
+        }
+    }
+
+    /// Start a new timer for GCS operations
+    pub fn start_gcs_operation(operation: impl Into<String>) -> Self {
+        let operation = operation.into();
+        PersistMetrics::global().record_gcs_request(&operation);
+
+        Self {
+            start: Instant::now(),
+            operation,
+        }
+    }
+
     /// Complete the timer, recording success latency
     pub fn finish(self) {
         let duration = self.start.elapsed();
@@ -208,9 +318,27 @@ impl MetricsTimer {
         PersistMetrics::global().record_s3_error(&self.operation);
     }
 
+    /// Complete the timer for GCS operation, recording success latency
+    pub fn finish_gcs(self) {
+        let duration = self.start.elapsed();
+        PersistMetrics::global().record_gcs_latency(&self.operation, duration);
+    }
+
+    /// Complete the GCS timer with an error, recording both latency and error
+    pub fn finish_gcs_with_error(self) {
+        let duration = self.start.elapsed();
+        PersistMetrics::global().record_gcs_latency(&self.operation, duration);
+        PersistMetrics::global().record_gcs_error(&self.operation);
+    }
+
     /// Record a retry for this operation
     pub fn record_retry(&self) {
         PersistMetrics::global().record_s3_retry(&self.operation);
+    }
+
+    /// Record a GCS retry for this operation
+    pub fn record_gcs_retry(&self) {
+        PersistMetrics::global().record_gcs_retry(&self.operation);
     }
 }
 

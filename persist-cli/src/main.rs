@@ -39,6 +39,8 @@ struct Cli {
 enum StorageType {
     Disk,
     S3,
+    #[allow(clippy::upper_case_acronyms)]
+    GCS,
 }
 
 #[derive(Subcommand)]
@@ -127,12 +129,17 @@ fn create_storage_config(cli: &Cli) -> Result<StorageConfig, anyhow::Error> {
     let backend = match cli.storage {
         StorageType::Disk => StorageBackend::Local,
         StorageType::S3 => StorageBackend::S3,
+        StorageType::GCS => StorageBackend::GCS,
     };
 
     let path = cli.path.clone().unwrap_or_else(|| match backend {
         StorageBackend::Local => "./snapshots".to_string(),
         StorageBackend::S3 => std::env::var("AWS_S3_BUCKET").unwrap_or_else(|_| {
             eprintln!("Error: AWS_S3_BUCKET environment variable is required for S3 storage");
+            std::process::exit(1);
+        }),
+        StorageBackend::GCS => std::env::var("GCS_BUCKET").unwrap_or_else(|_| {
+            eprintln!("Error: GCS_BUCKET environment variable is required for GCS storage");
             std::process::exit(1);
         }),
     });
@@ -144,6 +151,7 @@ fn create_storage_config(cli: &Cli) -> Result<StorageConfig, anyhow::Error> {
             Ok(config)
         }
         StorageBackend::S3 => Ok(StorageConfig::s3_with_bucket(path)),
+        StorageBackend::GCS => Ok(StorageConfig::gcs_with_bucket(path)),
     }
 }
 
@@ -164,6 +172,10 @@ async fn list_snapshots(
         }
         StorageBackend::S3 => {
             warn!("S3 snapshot listing not yet implemented");
+            Ok(())
+        }
+        StorageBackend::GCS => {
+            warn!("GCS snapshot listing not yet implemented");
             Ok(())
         }
     }
@@ -332,6 +344,27 @@ async fn delete_snapshot(
             #[cfg(not(feature = "s3"))]
             {
                 return Err(anyhow::anyhow!("S3 support not enabled"));
+            }
+        }
+        StorageBackend::GCS => {
+            #[cfg(feature = "gcs")]
+            {
+                use persist_core::GCSStorageAdapter;
+                let bucket = storage_config
+                    .gcs_bucket
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("GCS bucket not configured"))?;
+                let credentials_path = storage_config
+                    .gcs_credentials_path
+                    .as_ref()
+                    .map(|p| p.to_string_lossy().to_string());
+                let storage = GCSStorageAdapter::new(bucket.to_string(), credentials_path)?;
+                storage.delete(snapshot_id)?;
+                println!("✓ Snapshot deleted successfully");
+            }
+            #[cfg(not(feature = "gcs"))]
+            {
+                return Err(anyhow::anyhow!("GCS support not enabled"));
             }
         }
     }

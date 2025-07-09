@@ -8,15 +8,16 @@ repository.workspace = true
 description = "Command-line interface for Persist agent snapshot system"
 
 [features]
-default = ["s3"]
+default = ["s3", "gcs"]
 s3 = ["persist-core/s3"]
+gcs = ["persist-core/gcs"]
 
 [[bin]]
 name = "persist"
 path = "src/main.rs"
 
 [dependencies]
-persist-core = { path = "../persist-core", features = ["cli", "s3", "metrics"] }
+persist-core = { path = "../persist-core", features = ["cli", "s3", "gcs", "metrics"] }
 clap = { version = "4.0", features = ["derive", "env"] }
 tokio = { version = "1.28", features = ["full"] }
 tracing = "0.1"
