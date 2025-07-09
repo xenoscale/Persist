@@ -20,9 +20,10 @@ serde_json.workspace = true
 [build-dependencies]
 pyo3-build-config.workspace = true
 
-# Ensure compatibility with various Python versions
+# Ensure compatibility with various Python versions and platforms
 [package.metadata.maturin]
 python-source = "src"
 module-name = "persist"
 bindings = "pyo3"
-compatibility = "linux"
+# Cross-platform compatibility: support Linux, macOS (x86_64 and arm64), and Windows
+compatibility = "universal2"
