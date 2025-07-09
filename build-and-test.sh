@@ -164,6 +164,7 @@ check_dependencies() {
     print_step "Checking dependencies and tools..."
     
     local missing_tools=()
+    local missing_optional=()
     
     # Required tools
     if ! command_exists "cargo"; then
@@ -182,24 +183,62 @@ check_dependencies() {
         if ! command_exists "maturin"; then
             print_warning "maturin not found - Python extension build will be skipped"
             print_info "Install with: pip install maturin"
+            missing_optional+=("maturin")
+        fi
+        
+        # Check for other Python tools
+        if ! command_exists "pytest"; then
+            print_warning "pytest not available, skipping Python tests"
+            print_info "Install with: pip install pytest"
+            missing_optional+=("pytest")
         fi
     fi
     
     # Optional but recommended tools
     if [ "$SKIP_FORMAT" = false ] && ! command_exists "rustfmt"; then
         print_warning "rustfmt not found - formatting will be skipped"
+        missing_optional+=("rustfmt")
     fi
     
     if [ "$SKIP_LINT" = false ] && ! command_exists "clippy"; then
         print_warning "clippy not found - linting will be skipped"
+        missing_optional+=("clippy")
     fi
     
+    # Check for Python development tools
+    if [ "$SKIP_PYTHON" = false ]; then
+        if ! command_exists "black"; then
+            print_warning "black not available, skipping Python formatting"
+            missing_optional+=("black")
+        fi
+        
+        if ! command_exists "ruff"; then
+            print_warning "ruff not available, skipping Python linting"
+            missing_optional+=("ruff")
+        fi
+    fi
+    
+    # Handle missing tools
     if [ ${#missing_tools[@]} -gt 0 ]; then
         print_error "Missing required tools:"
         for tool in "${missing_tools[@]}"; do
             echo "  - $tool"
         done
+        echo ""
+        print_info "Run the setup script to install missing tools:"
+        print_info "  ./setup-dev-tools --auto-install"
+        print_info "Or for manual guidance:"
+        print_info "  ./setup-dev-tools"
         exit 1
+    fi
+    
+    # Provide guidance for optional tools
+    if [ ${#missing_optional[@]} -gt 0 ]; then
+        print_warning "Missing optional tools (${#missing_optional[@]} total) - some functionality will be limited"
+        print_info "To install all recommended development tools, run:"
+        print_info "  ./setup-dev-tools --auto-install"
+        print_info "Or check what's missing with:"
+        print_info "  ./setup-dev-tools"
     fi
     
     print_success "All required dependencies found"
