@@ -2,9 +2,9 @@
 Tests for Persist custom exception classes and error handling.
 """
 
-import pytest
 import persist
-from unittest.mock import patch, MagicMock
+import pytest
+from unittest.mock import patch
 
 
 class TestCustomExceptions:
@@ -45,7 +45,7 @@ class TestErrorHandling:
         """Test that invalid storage mode raises PersistConfigurationError."""
         dummy_agent = {"test": "data"}
         
-        with pytest.raises(Exception) as exc_info:  # Will be IOError currently, but checking message
+        with pytest.raises((persist.PersistConfigurationError, ValueError, OSError)) as exc_info:
             persist.snapshot(dummy_agent, "test.json.gz", storage_mode="invalid_mode")
         
         # Check that the error message indicates invalid storage mode
@@ -55,7 +55,7 @@ class TestErrorHandling:
         """Test that missing S3 bucket parameter raises appropriate error."""
         dummy_agent = {"test": "data"}
         
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises((persist.PersistS3Error, persist.PersistConfigurationError, ValueError)) as exc_info:
             persist.snapshot(dummy_agent, "test.json.gz", storage_mode="s3")
         
         # Should raise an error about missing bucket configuration
@@ -64,7 +64,7 @@ class TestErrorHandling:
     
     def test_snapshot_nonexistent_path_raises_error(self):
         """Test that trying to restore from nonexistent path raises appropriate error."""
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises((FileNotFoundError, OSError, persist.PersistError)) as exc_info:
             persist.restore("/nonexistent/path/snapshot.json.gz")
         
         # Should be a file not found or IO error
@@ -93,7 +93,7 @@ class TestErrorHandling:
             'AWS_SECRET_ACCESS_KEY': 'invalid_secret',
             'AWS_REGION': 'us-west-2'
         }):
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises((persist.PersistS3Error, OSError, PermissionError)) as exc_info:
                 persist.snapshot(
                     dummy_agent, 
                     "test.json.gz",
@@ -188,7 +188,7 @@ class TestUtilityFunctions:
     
     def test_get_metadata_with_nonexistent_file(self):
         """Test get_metadata with nonexistent file."""
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises((FileNotFoundError, OSError, persist.PersistError)) as exc_info:
             persist.get_metadata("/nonexistent/file.json.gz")
         
         # Should raise file not found or similar error
@@ -197,7 +197,7 @@ class TestUtilityFunctions:
     
     def test_verify_snapshot_with_nonexistent_file(self):
         """Test verify_snapshot with nonexistent file."""
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises((FileNotFoundError, OSError, persist.PersistError)) as exc_info:
             persist.verify_snapshot("/nonexistent/file.json.gz")
         
         # Should raise file not found or similar error
@@ -206,7 +206,7 @@ class TestUtilityFunctions:
     
     def test_delete_snapshot_with_nonexistent_file(self):
         """Test delete_snapshot with nonexistent file."""
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises((FileNotFoundError, OSError, persist.PersistError)) as exc_info:
             persist.delete_snapshot("/nonexistent/file.json.gz")
         
         # Should raise file not found or similar error

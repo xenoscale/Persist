@@ -4,7 +4,7 @@ Type stubs for the persist Python module.
 This file provides type annotations for IDE support and static type checking.
 """
 
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 __version__: str
 
@@ -32,12 +32,12 @@ def snapshot(
     agent: Any,
     path: str,
     agent_id: str = "default_agent",
-    session_id: str = "default_session", 
+    session_id: str = "default_session",
     snapshot_index: int = 0,
-    description: Optional[str] = None,
-    storage_mode: Optional[str] = None,
-    s3_bucket: Optional[str] = None,
-    s3_region: Optional[str] = None,
+    description: str | None = None,
+    storage_mode: str | None = None,
+    s3_bucket: str | None = None,
+    s3_region: str | None = None,
 ) -> None:
     """
     Save an agent snapshot with configurable storage backend.
@@ -82,9 +82,9 @@ def snapshot(
 
 def restore(
     path: str,
-    storage_mode: Optional[str] = None,
-    s3_bucket: Optional[str] = None,
-    s3_region: Optional[str] = None,
+    storage_mode: str | None = None,
+    s3_bucket: str | None = None,
+    s3_region: str | None = None,
 ) -> Any:
     """
     Restore an agent from a snapshot.
@@ -126,10 +126,10 @@ def restore(
 
 def get_metadata(
     path: str,
-    storage_mode: Optional[str] = None,
-    s3_bucket: Optional[str] = None,
-    s3_region: Optional[str] = None,
-) -> Dict[str, Union[str, int, float]]:
+    storage_mode: str | None = None,
+    s3_bucket: str | None = None,
+    s3_region: str | None = None,
+) -> dict[str, str | int | float]:
     """
     Get metadata for a snapshot without loading the full snapshot.
     
@@ -167,9 +167,9 @@ def get_metadata(
 
 def verify_snapshot(
     path: str,
-    storage_mode: Optional[str] = None,
-    s3_bucket: Optional[str] = None,
-    s3_region: Optional[str] = None,
+    storage_mode: str | None = None,
+    s3_bucket: str | None = None,
+    s3_region: str | None = None,
 ) -> None:
     """
     Verify the integrity of a snapshot.
@@ -198,9 +198,9 @@ def verify_snapshot(
 
 def snapshot_exists(
     path: str,
-    storage_mode: Optional[str] = None,
-    s3_bucket: Optional[str] = None,
-    s3_region: Optional[str] = None,
+    storage_mode: str | None = None,
+    s3_bucket: str | None = None,
+    s3_region: str | None = None,
 ) -> bool:
     """
     Check if a snapshot exists.
@@ -224,9 +224,9 @@ def snapshot_exists(
 
 def delete_snapshot(
     path: str,
-    storage_mode: Optional[str] = None,
-    s3_bucket: Optional[str] = None,
-    s3_region: Optional[str] = None,
+    storage_mode: str | None = None,
+    s3_bucket: str | None = None,
+    s3_region: str | None = None,
 ) -> None:
     """
     Delete a snapshot.
