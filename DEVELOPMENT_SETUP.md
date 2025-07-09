@@ -98,6 +98,8 @@ The script supports both Intel and Apple Silicon Macs:
 - **MacPorts**: Manual installation required
 - **Xcode Command Line Tools**: Automatically prompted if needed
 
+**Note**: The setup scripts are fully compatible with macOS's default bash 3.x. No bash upgrade required.
+
 ### Linux Setup
 
 Supports major distributions with automatic package manager detection:
