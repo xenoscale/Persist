@@ -50,6 +50,7 @@ SKIP_PYTHON=false
 VERBOSE=false
 QUICK_MODE=false
 DRY_RUN=false
+PYTHON_EXTENSION_BUILT=false
 
 # Parse command line arguments
 show_help() {
@@ -345,8 +346,10 @@ build_python() {
     
     if command_exists "maturin"; then
         execute_cmd "cd persist-python && maturin develop --release && cd .." "Python extension build"
+        PYTHON_EXTENSION_BUILT=true
         print_success "Python extension built successfully"
     else
+        PYTHON_EXTENSION_BUILT=false
         print_warning "maturin not available, skipping Python extension build"
         print_info "Install with: pip install maturin"
     fi
@@ -372,10 +375,14 @@ run_tests() {
     print_success "Rust tests completed"
     
     # Run Python tests
-    if [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && command_exists "pytest"; then
+    if [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && [ "$PYTHON_EXTENSION_BUILT" = true ] && command_exists "pytest"; then
         execute_cmd "cd persist-python && pytest && cd .." "Python tests"
         print_success "Python tests completed"
-    elif [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ]; then
+    elif [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && [ "$PYTHON_EXTENSION_BUILT" = false ]; then
+        print_warning "Python extension not built, skipping Python tests"
+        print_info "The persist module is required for Python tests. Install maturin to build the extension:"
+        print_info "  pip install maturin"
+    elif [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && [ "$PYTHON_EXTENSION_BUILT" = true ]; then
         print_warning "pytest not available, skipping Python tests"
         print_info "Install with: pip install pytest"
     fi
@@ -399,7 +406,13 @@ generate_summary() {
     echo -e "\nComponents built:"
     echo "  ✅ Rust core library (persist-core)"
     [ -d "persist-cli" ] && echo "  ✅ CLI tool (persist-cli)"
-    [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && echo "  ✅ Python extension (persist-python)"
+    if [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ]; then
+        if [ "$PYTHON_EXTENSION_BUILT" = true ]; then
+            echo "  ✅ Python extension (persist-python)"
+        else
+            echo "  ⚠️  Python extension (persist-python) - skipped (maturin not available)"
+        fi
+    fi
     
     echo -e "\nQuality checks:"
     [ "$SKIP_FORMAT" = false ] && echo "  ✅ Code formatting"
@@ -408,7 +421,15 @@ generate_summary() {
     echo -e "\nTests executed:"
     [ "$SKIP_TESTS" = false ] && echo "  ✅ Rust unit and integration tests"
     [ "$SKIP_TESTS" = false ] && echo "  ✅ Rust documentation tests"
-    [ "$SKIP_PYTHON" = false ] && [ "$SKIP_TESTS" = false ] && echo "  ✅ Python tests"
+    if [ "$SKIP_PYTHON" = false ] && [ "$SKIP_TESTS" = false ]; then
+        if [ "$PYTHON_EXTENSION_BUILT" = true ] && command_exists "pytest"; then
+            echo "  ✅ Python tests"
+        elif [ "$PYTHON_EXTENSION_BUILT" = false ]; then
+            echo "  ⚠️  Python tests - skipped (extension not built)"
+        elif ! command_exists "pytest"; then
+            echo "  ⚠️  Python tests - skipped (pytest not available)"
+        fi
+    fi
     
     echo -e "\n${CYAN}Next steps:${NC}"
     echo "  - Review any warnings above"
