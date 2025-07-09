@@ -41,10 +41,10 @@ def snapshot(
 ) -> None:
     """
     Save an agent snapshot with configurable storage backend.
-    
+
     This function serializes a LangChain agent (or other compatible object) to a compressed
     snapshot file. Supports both local filesystem and Amazon S3 storage backends.
-    
+
     Args:
         agent: The agent object to snapshot (must support LangChain serialization)
         path: Storage path/key for the snapshot
@@ -55,7 +55,7 @@ def snapshot(
         storage_mode: Storage backend - "local" or "s3" (default: "local")
         s3_bucket: S3 bucket name (required for S3 mode)
         s3_region: S3 region (optional, uses AWS environment default)
-    
+
     Raises:
         PersistError: If saving fails
         PersistConfigurationError: If configuration is invalid
@@ -64,14 +64,14 @@ def snapshot(
         IOError: If I/O operations fail
         FileNotFoundError: If S3 object not found
         PermissionError: If access denied
-    
+
     Example:
         >>> import persist
         >>> from langchain.chains import ConversationChain
-        >>> 
+        >>>
         >>> # Local storage
         >>> persist.snapshot(agent, "snapshots/agent1.json.gz")
-        >>> 
+        >>>
         >>> # S3 storage
         >>> persist.snapshot(agent, "agent1/session1/snapshot.json.gz",
         ...                 storage_mode="s3",
@@ -88,19 +88,19 @@ def restore(
 ) -> Any:
     """
     Restore an agent from a snapshot.
-    
+
     This function loads and deserializes a previously saved agent snapshot,
     reconstructing the original agent object using LangChain's loading mechanisms.
-    
+
     Args:
         path: Storage path/key of the snapshot to restore
         storage_mode: Storage backend - "local" or "s3" (default: "local")
         s3_bucket: S3 bucket name (required for S3 mode)
         s3_region: S3 region (optional, uses AWS environment default)
-    
+
     Returns:
         The restored agent object
-    
+
     Raises:
         PersistError: If restoration fails
         PersistIntegrityError: If integrity verification fails
@@ -110,13 +110,13 @@ def restore(
         IOError: If I/O operations fail
         FileNotFoundError: If snapshot not found
         PermissionError: If access denied
-    
+
     Example:
         >>> import persist
-        >>> 
+        >>>
         >>> # Restore from local storage
         >>> agent = persist.restore("snapshots/agent1.json.gz")
-        >>> 
+        >>>
         >>> # Restore from S3
         >>> agent = persist.restore("agent1/session1/snapshot.json.gz",
         ...                        storage_mode="s3",
@@ -132,17 +132,17 @@ def get_metadata(
 ) -> dict[str, str | int | float]:
     """
     Get metadata for a snapshot without loading the full snapshot.
-    
+
     Args:
         path: Storage path/key of the snapshot
         storage_mode: Storage backend - "local" or "s3" (default: "local")
         s3_bucket: S3 bucket name (required for S3 mode)
         s3_region: S3 region (optional, uses AWS environment default)
-    
+
     Returns:
         Dictionary containing snapshot metadata with keys:
         - agent_id: Agent identifier
-        - session_id: Session identifier  
+        - session_id: Session identifier
         - snapshot_index: Sequence number
         - timestamp: Unix timestamp when snapshot was created
         - format_version: Snapshot format version
@@ -151,14 +151,14 @@ def get_metadata(
         - description: Optional description (if present)
         - compressed_size: Size of compressed data (if available)
         - snapshot_id: Unique snapshot identifier (if present)
-    
+
     Raises:
         PersistError: If metadata retrieval fails
         PersistConfigurationError: If configuration is invalid
         PersistS3Error: If S3 operations fail
         IOError: If I/O operations fail
         FileNotFoundError: If snapshot not found
-    
+
     Example:
         >>> metadata = persist.get_metadata("snapshots/agent1.json.gz")
         >>> print(f"Agent: {metadata['agent_id']}, Created: {metadata['timestamp']}")
@@ -173,23 +173,23 @@ def verify_snapshot(
 ) -> None:
     """
     Verify the integrity of a snapshot.
-    
+
     This function checks the integrity of a snapshot by verifying its hash
     and ensuring the data hasn't been corrupted.
-    
+
     Args:
         path: Storage path/key of the snapshot to verify
         storage_mode: Storage backend - "local" or "s3" (default: "local")
         s3_bucket: S3 bucket name (required for S3 mode)
         s3_region: S3 region (optional, uses AWS environment default)
-    
+
     Raises:
         PersistIntegrityError: If verification fails or snapshot is corrupted
         PersistConfigurationError: If configuration is invalid
         PersistS3Error: If S3 operations fail
         IOError: If I/O operations fail
         FileNotFoundError: If snapshot not found
-    
+
     Example:
         >>> persist.verify_snapshot("snapshots/agent1.json.gz")
         >>> print("Snapshot integrity verified!")
@@ -204,16 +204,16 @@ def snapshot_exists(
 ) -> bool:
     """
     Check if a snapshot exists.
-    
+
     Args:
         path: Storage path/key to check
         storage_mode: Storage backend - "local" or "s3" (default: "local")
         s3_bucket: S3 bucket name (required for S3 mode)
         s3_region: S3 region (optional, uses AWS environment default)
-    
+
     Returns:
         True if the snapshot exists, False otherwise
-    
+
     Example:
         >>> if persist.snapshot_exists("snapshots/agent1.json.gz"):
         ...     print("Snapshot exists!")
@@ -230,13 +230,13 @@ def delete_snapshot(
 ) -> None:
     """
     Delete a snapshot.
-    
+
     Args:
         path: Storage path/key of the snapshot to delete
         storage_mode: Storage backend - "local" or "s3" (default: "local")
         s3_bucket: S3 bucket name (required for S3 mode)
         s3_region: S3 region (optional, uses AWS environment default)
-    
+
     Raises:
         PersistError: If deletion fails
         PersistConfigurationError: If configuration is invalid
@@ -244,7 +244,7 @@ def delete_snapshot(
         IOError: If I/O operations fail
         FileNotFoundError: If snapshot not found
         PermissionError: If access denied
-    
+
     Example:
         >>> persist.delete_snapshot("snapshots/old_agent.json.gz")
         >>> print("Snapshot deleted!")
