@@ -207,31 +207,93 @@ Persist follows hexagonal architecture principles with clear separation of conce
 - Python 3.8+
 - Maturin for Python package building
 
-### Building
+### 🎯 One-Command Build and Test
+
+The easiest way to build and test everything:
+
+```bash
+# Complete build and test automation
+./build-and-test.sh
+
+# Quick development cycle (fast iteration)
+./build-and-test.sh --quick
+
+# Show all options
+./build-and-test.sh --help
+```
+
+Alternative using Make:
+
+```bash
+# Complete pipeline
+make all
+
+# Quick development cycle
+make quick
+
+# Show all available targets
+make help
+```
+
+### 🛠 Manual Building
+
+If you prefer manual control:
 
 ```bash
 # Build Rust core
 cargo build --release -p persist-core
 
-# Run Rust tests
-cargo test -p persist-core
+# Build CLI tool
+cargo build --release -p persist-cli
 
 # Build Python package
 cd persist-python
-maturin build --release
-
-# Install for development
 maturin develop --release
+cd ..
 ```
 
-### Testing
+### 🧪 Testing
 
 ```bash
-# Rust tests
-cargo test --workspace
+# Run all tests with automation script
+./build-and-test.sh --skip-build
 
-# Python tests (after installing package)
-pytest tests/
+# Or run tests manually
+cargo test --workspace --all-features
+cargo test --doc
+
+# Python tests (after building extension)
+cd persist-python && pytest && cd ..
+```
+
+### 📋 Code Quality
+
+```bash
+# Format code
+./scripts/format.sh
+# OR: make format
+
+# Lint code  
+./scripts/lint.sh
+# OR: make lint
+
+# Run comprehensive tests
+./scripts/run_comprehensive_tests.sh
+```
+
+### ⚡ Development Workflow
+
+For fast development iterations:
+
+```bash
+# Option 1: Use automation script
+./build-and-test.sh --quick
+
+# Option 2: Use Make
+make quick
+
+# Option 3: Use individual scripts
+./scripts/format.sh && ./scripts/lint.sh && cargo test
 ```
 
 ## 📁 Repository Structure
