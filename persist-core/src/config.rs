@@ -14,6 +14,8 @@ pub enum StorageBackend {
     Local,
     /// Amazon S3 cloud storage
     S3,
+    /// Google Cloud Storage
+    GCS,
 }
 
 /// Configuration structure for storage backend settings
@@ -27,6 +29,10 @@ pub struct StorageConfig {
     pub s3_region: Option<String>,
     /// Base path for local storage (optional, defaults to current directory)
     pub local_base_path: Option<PathBuf>,
+    /// GCS bucket name (required for GCS backend)
+    pub gcs_bucket: Option<String>,
+    /// Path to GCP service account credentials JSON (optional, uses environment if not provided)
+    pub gcs_credentials_path: Option<PathBuf>,
 }
 
 impl StorageConfig {
@@ -37,6 +43,8 @@ impl StorageConfig {
             s3_bucket: None,
             s3_region: None,
             local_base_path: None,
+            gcs_bucket: None,
+            gcs_credentials_path: None,
         }
     }
 
@@ -47,6 +55,8 @@ impl StorageConfig {
             s3_bucket: Some("persist-default-bucket".to_string()),
             s3_region: None, // Will use AWS environment default
             local_base_path: None,
+            gcs_bucket: None,
+            gcs_credentials_path: None,
         }
     }
 
@@ -57,6 +67,8 @@ impl StorageConfig {
             s3_bucket: Some(bucket),
             s3_region: None,
             local_base_path: None,
+            gcs_bucket: None,
+            gcs_credentials_path: None,
         }
     }
 
@@ -67,6 +79,44 @@ impl StorageConfig {
             s3_bucket: Some(bucket),
             s3_region: Some(region),
             local_base_path: None,
+            gcs_bucket: None,
+            gcs_credentials_path: None,
+        }
+    }
+
+    /// Create a default configuration for GCS storage with fallback bucket
+    pub fn default_gcs() -> Self {
+        StorageConfig {
+            backend: StorageBackend::GCS,
+            s3_bucket: None,
+            s3_region: None,
+            local_base_path: None,
+            gcs_bucket: Some("persist-default-gcs-bucket".to_string()),
+            gcs_credentials_path: None,
+        }
+    }
+
+    /// Create a GCS configuration with specified bucket
+    pub fn gcs_with_bucket(bucket: String) -> Self {
+        StorageConfig {
+            backend: StorageBackend::GCS,
+            s3_bucket: None,
+            s3_region: None,
+            local_base_path: None,
+            gcs_bucket: Some(bucket),
+            gcs_credentials_path: None,
+        }
+    }
+
+    /// Create a GCS configuration with bucket and credentials
+    pub fn gcs_with_bucket_and_credentials(bucket: String, credentials_path: PathBuf) -> Self {
+        StorageConfig {
+            backend: StorageBackend::GCS,
+            s3_bucket: None,
+            s3_region: None,
+            local_base_path: None,
+            gcs_bucket: Some(bucket),
+            gcs_credentials_path: Some(credentials_path),
         }
     }
 
@@ -74,6 +124,7 @@ impl StorageConfig {
     ///
     /// Supports formats:
     /// - `s3://bucket-name/path` for S3 storage
+    /// - `gs://bucket-name/path` for GCS storage
     /// - `/local/path` or `./relative/path` for local storage
     ///
     /// Returns the config and the extracted key/path component
@@ -91,6 +142,19 @@ impl StorageConfig {
 
             let config = StorageConfig::s3_with_bucket(bucket);
             Ok((config, key))
+        } else if let Some(gcs_part) = uri.strip_prefix("gs://") {
+            let parts: Vec<&str> = gcs_part.splitn(2, '/').collect();
+            if parts.is_empty() || parts[0].is_empty() {
+                return Err(crate::PersistError::validation(
+                    "Invalid GCS URI: missing bucket name",
+                ));
+            }
+
+            let bucket = parts[0].to_string();
+            let key = parts.get(1).unwrap_or(&"").to_string();
+
+            let config = StorageConfig::gcs_with_bucket(bucket);
+            Ok((config, key))
         } else {
             // Treat as local path
             let config = StorageConfig::default_local();
@@ -105,6 +169,13 @@ impl StorageConfig {
                 if self.s3_bucket.is_none() || self.s3_bucket.as_ref().unwrap().is_empty() {
                     return Err(crate::PersistError::validation(
                         "S3 backend requires a valid bucket name",
+                    ));
+                }
+            }
+            StorageBackend::GCS => {
+                if self.gcs_bucket.is_none() || self.gcs_bucket.as_ref().unwrap().is_empty() {
+                    return Err(crate::PersistError::validation(
+                        "GCS backend requires a valid bucket name",
                     ));
                 }
             }
@@ -197,5 +268,74 @@ mod tests {
     fn test_validate_local_config() {
         let config = StorageConfig::default_local();
         assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn test_default_gcs_config() {
+        let config = StorageConfig::default_gcs();
+        assert_eq!(config.backend, StorageBackend::GCS);
+        assert_eq!(
+            config.gcs_bucket,
+            Some("persist-default-gcs-bucket".to_string())
+        );
+        assert!(config.gcs_credentials_path.is_none());
+    }
+
+    #[test]
+    fn test_gcs_with_bucket() {
+        let config = StorageConfig::gcs_with_bucket("my-gcs-bucket".to_string());
+        assert_eq!(config.backend, StorageBackend::GCS);
+        assert_eq!(config.gcs_bucket, Some("my-gcs-bucket".to_string()));
+        assert!(config.gcs_credentials_path.is_none());
+    }
+
+    #[test]
+    fn test_gcs_with_bucket_and_credentials() {
+        let cred_path = PathBuf::from("/path/to/creds.json");
+        let config = StorageConfig::gcs_with_bucket_and_credentials(
+            "my-gcs-bucket".to_string(),
+            cred_path.clone(),
+        );
+        assert_eq!(config.backend, StorageBackend::GCS);
+        assert_eq!(config.gcs_bucket, Some("my-gcs-bucket".to_string()));
+        assert_eq!(config.gcs_credentials_path, Some(cred_path));
+    }
+
+    #[test]
+    fn test_from_uri_gcs() {
+        let (config, key) = StorageConfig::from_uri("gs://test-bucket/path/to/object").unwrap();
+        assert_eq!(config.backend, StorageBackend::GCS);
+        assert_eq!(config.gcs_bucket, Some("test-bucket".to_string()));
+        assert_eq!(key, "path/to/object");
+    }
+
+    #[test]
+    fn test_from_uri_gcs_bucket_only() {
+        let (config, key) = StorageConfig::from_uri("gs://test-bucket").unwrap();
+        assert_eq!(config.backend, StorageBackend::GCS);
+        assert_eq!(config.gcs_bucket, Some("test-bucket".to_string()));
+        assert_eq!(key, "");
+    }
+
+    #[test]
+    fn test_from_uri_invalid_gcs() {
+        let result = StorageConfig::from_uri("gs://");
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("missing bucket name"));
+    }
+
+    #[test]
+    fn test_validate_gcs_config() {
+        let mut config = StorageConfig::default_gcs();
+        assert!(config.validate().is_ok());
+
+        config.gcs_bucket = None;
+        assert!(config.validate().is_err());
+
+        config.gcs_bucket = Some("".to_string());
+        assert!(config.validate().is_err());
     }
 }

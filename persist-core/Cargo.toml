@@ -8,8 +8,9 @@ repository.workspace = true
 description = "Core engine for agent snapshot and restore functionality"
 
 [features]
-default = ["s3"]
+default = ["s3", "gcs"]
 s3 = ["aws-config", "aws-sdk-s3", "aws-smithy-runtime-api"]
+gcs = ["google-cloud-storage", "google-cloud-auth"]
 metrics = ["prometheus"]
 cli = []
 
@@ -26,6 +27,10 @@ uuid.workspace = true
 aws-config = { version = "1.1", optional = true }
 aws-sdk-s3 = { version = "1.96", optional = true }
 aws-smithy-runtime-api = { version = "1.0", optional = true }
+
+# Google Cloud Storage dependencies (optional)
+google-cloud-storage = { version = "0.24", optional = true }
+google-cloud-auth = { version = "0.16", optional = true }
 tokio = { version = "1.28", features = ["full"] }
 rayon = "1.8"
 

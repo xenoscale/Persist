@@ -6,6 +6,7 @@ following hexagonal architecture principles. The core domain logic is independen
 storage details, making it easy to add new storage backends.
 */
 
+pub mod gcs;
 pub mod local;
 pub mod s3;
 
@@ -56,6 +57,7 @@ pub trait StorageAdapter {
 }
 
 // Re-export types for convenience
+pub use gcs::GCSStorageAdapter;
 pub use local::LocalFileStorage;
 pub use s3::S3StorageAdapter;
 

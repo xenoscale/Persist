@@ -68,7 +68,13 @@ pub use snapshot::{
 #[cfg(feature = "s3")]
 pub use snapshot::create_s3_engine;
 
+#[cfg(feature = "gcs")]
+pub use snapshot::create_gcs_engine;
+
 pub use storage::{LocalFileStorage, StorageAdapter};
 
 #[cfg(feature = "s3")]
 pub use storage::S3StorageAdapter;
+
+#[cfg(feature = "gcs")]
+pub use storage::GCSStorageAdapter;

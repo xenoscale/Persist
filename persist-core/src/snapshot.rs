@@ -312,6 +312,40 @@ pub fn create_s3_engine(
     ))
 }
 
+/// Convenience function to create a snapshot engine with GCS storage
+///
+/// Creates an engine with:
+/// - Google Cloud Storage for the specified bucket
+/// - Gzip compression with default level
+///
+/// # Arguments
+/// * `bucket` - The GCS bucket name to use for storage
+/// * `credentials_path` - Optional path to service account JSON file
+///
+/// # Returns
+/// A snapshot engine configured for GCS storage or an error if GCS initialization fails
+///
+/// # Example
+/// ```rust,no_run
+/// use persist_core::create_gcs_engine;
+///
+/// // Ensure GCP credentials are set in environment:
+/// // export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+///
+/// let engine = create_gcs_engine("my-snapshots-bucket".to_string(), None)?;
+/// # Ok::<(), persist_core::PersistError>(())
+/// ```
+pub fn create_gcs_engine(
+    bucket: String,
+    credentials_path: Option<String>,
+) -> Result<SnapshotEngine<crate::storage::GCSStorageAdapter, crate::compression::GzipCompressor>> {
+    let storage = crate::storage::GCSStorageAdapter::new(bucket, credentials_path)?;
+    Ok(SnapshotEngine::new(
+        storage,
+        crate::compression::GzipCompressor::new(),
+    ))
+}
+
 /// Create a snapshot engine based on storage configuration
 ///
 /// This function provides a unified interface for creating engines with different
@@ -359,6 +393,17 @@ pub fn create_engine_from_config(
                 PersistError::validation("S3 bucket name is required for S3 backend")
             })?;
             let storage = crate::storage::S3StorageAdapter::new(bucket)?;
+            let engine = SnapshotEngine::new(storage, crate::compression::GzipCompressor::new());
+            Ok(Box::new(engine))
+        }
+        StorageBackend::GCS => {
+            let bucket = config.gcs_bucket.ok_or_else(|| {
+                PersistError::validation("GCS bucket name is required for GCS backend")
+            })?;
+            let credentials_path = config
+                .gcs_credentials_path
+                .map(|p| p.to_string_lossy().to_string());
+            let storage = crate::storage::GCSStorageAdapter::new(bucket, credentials_path)?;
             let engine = SnapshotEngine::new(storage, crate::compression::GzipCompressor::new());
             Ok(Box::new(engine))
         }
