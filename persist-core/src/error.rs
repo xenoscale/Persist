@@ -132,4 +132,24 @@ impl PersistError {
     pub fn s3_configuration<S: Into<String>>(msg: S) -> Self {
         Self::S3Configuration(msg.into())
     }
+
+    /// Create a new I/O read error with context
+    pub fn io_read<E: Into<std::io::Error>, S: Into<String>>(source: E, context: S) -> Self {
+        let io_error = source.into();
+        let context_msg = context.into();
+        // Wrap the original error with additional context
+        let enhanced_error =
+            std::io::Error::new(io_error.kind(), format!("{context_msg}: {io_error}"));
+        Self::Io(enhanced_error)
+    }
+
+    /// Create a new I/O write error with context
+    pub fn io_write<E: Into<std::io::Error>, S: Into<String>>(source: E, context: S) -> Self {
+        let io_error = source.into();
+        let context_msg = context.into();
+        // Wrap the original error with additional context
+        let enhanced_error =
+            std::io::Error::new(io_error.kind(), format!("{context_msg}: {io_error}"));
+        Self::Io(enhanced_error)
+    }
 }

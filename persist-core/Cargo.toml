@@ -22,6 +22,7 @@ flate2.workspace = true
 thiserror.workspace = true
 chrono.workspace = true
 uuid.workspace = true
+tempfile = "3.0"
 
 # AWS SDK dependencies for S3 storage backend (optional)
 aws-config = { version = "1.1", optional = true }

@@ -12,7 +12,7 @@ Includes comprehensive error handling, retry logic, memory optimization, and fle
 - **Exponential Backoff**: Replaces manual sleep with proper exponential backoff with jitter
 - **Structured Error Handling**: Differentiates between transient and permanent errors for better retry logic
 
-## Medium Priority Enhancements  
+## Medium Priority Enhancements
 - **Graceful Shutdown**: Implements `Drop` trait for proper runtime cleanup
 - **Builder Pattern**: Flexible configuration via `S3StorageAdapterBuilder`
 - **Environment Configuration**: Supports `PERSIST_S3_MAX_RETRIES` and `PERSIST_S3_TIMEOUT` env vars
