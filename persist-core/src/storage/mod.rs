@@ -6,15 +6,16 @@ following hexagonal architecture principles. The core domain logic is independen
 storage details, making it easy to add new storage backends.
 */
 
+#[cfg(feature = "gcs")]
 pub mod gcs;
 pub mod local;
+#[cfg(feature = "s3")]
 pub mod s3;
 
 use crate::Result;
 use async_trait::async_trait;
 use futures::io::AsyncRead;
-use once_cell::sync::Lazy;
-use std::sync::Arc;
+
 
 #[cfg(feature = "async-rt")]
 use tokio::runtime::Runtime;
@@ -166,8 +167,10 @@ impl<A: AsyncStorageAdapter> StorageAdapter for BlockingStorage<A> {
 }
 
 // Re-export types for convenience
+#[cfg(feature = "gcs")]
 pub use gcs::GCSStorageAdapter;
 pub use local::LocalFileStorage;
+#[cfg(feature = "s3")]
 pub use s3::S3StorageAdapter;
 
 /// Memory-based storage adapter for testing

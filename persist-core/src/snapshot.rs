@@ -10,6 +10,7 @@ use crate::{
     SnapshotMetadata,
 };
 use serde_json;
+#[cfg(feature = "gcs")]
 use std::path::PathBuf;
 
 /// Container for the complete snapshot data (metadata + agent state)
@@ -303,6 +304,7 @@ pub fn create_default_engine(
 /// let engine = create_s3_engine("my-snapshots-bucket".to_string())?;
 /// # Ok::<(), persist_core::PersistError>(())
 /// ```
+#[cfg(feature = "s3")]
 pub fn create_s3_engine(
     bucket: String,
 ) -> Result<SnapshotEngine<crate::storage::S3StorageAdapter, crate::compression::GzipCompressor>> {
@@ -336,6 +338,7 @@ pub fn create_s3_engine(
 /// let engine = create_gcs_engine("my-snapshots-bucket".to_string(), None)?;
 /// # Ok::<(), persist_core::PersistError>(())
 /// ```
+#[cfg(feature = "gcs")]
 pub fn create_gcs_engine(
     bucket: String,
     credentials_path: Option<PathBuf>,
@@ -389,6 +392,7 @@ pub fn create_engine_from_config(
             let engine = SnapshotEngine::new(storage, crate::compression::GzipCompressor::new());
             Ok(Box::new(engine))
         }
+        #[cfg(feature = "s3")]
         StorageBackend::S3 => {
             let bucket = config.s3_bucket.ok_or_else(|| {
                 PersistError::validation("S3 bucket name is required for S3 backend")
@@ -397,6 +401,7 @@ pub fn create_engine_from_config(
             let engine = SnapshotEngine::new(storage, crate::compression::GzipCompressor::new());
             Ok(Box::new(engine))
         }
+        #[cfg(feature = "gcs")]
         StorageBackend::GCS => {
             let bucket = config.gcs_bucket.ok_or_else(|| {
                 PersistError::validation("GCS bucket name is required for GCS backend")
@@ -406,6 +411,18 @@ pub fn create_engine_from_config(
             let storage = crate::storage::GCSStorageAdapter::new(bucket, prefix, credentials_path)?;
             let engine = SnapshotEngine::new(storage, crate::compression::GzipCompressor::new());
             Ok(Box::new(engine))
+        }
+        #[cfg(not(feature = "s3"))]
+        StorageBackend::S3 => {
+            Err(PersistError::validation(
+                "S3 storage backend is not available. Enable the 's3' feature to use S3 storage."
+            ))
+        }
+        #[cfg(not(feature = "gcs"))]
+        StorageBackend::GCS => {
+            Err(PersistError::validation(
+                "GCS storage backend is not available. Enable the 'gcs' feature to use GCS storage."
+            ))
         }
     }
 }
