@@ -39,6 +39,7 @@ pub struct PersistMetrics {
     pub gcs_errors_total: Counter,
     pub gcs_latency_seconds: Histogram,
     pub gcs_retries_total: Counter,
+    pub gcs_transfer_size_bytes: Histogram,
 
     // State size metrics
     pub state_size_bytes: Histogram,
@@ -120,6 +121,14 @@ impl PersistMetrics {
             PersistError::storage(format!("Failed to create gcs_retries_total metric: {e}"))
         })?;
 
+        let gcs_transfer_size_bytes = Histogram::with_opts(prometheus::HistogramOpts::new(
+            "persist_gcs_transfer_size_bytes",
+            "Size of data transferred in GCS operations",
+        ))
+        .map_err(|e| {
+            PersistError::storage(format!("Failed to create gcs_transfer_size_bytes metric: {e}"))
+        })?;
+
         let state_size_bytes = Histogram::with_opts(prometheus::HistogramOpts::new(
             "persist_state_size_bytes",
             "Size of agent state in bytes",
@@ -184,6 +193,12 @@ impl PersistMetrics {
                 PersistError::storage(format!("Failed to register gcs_retries_total: {e}"))
             })?;
 
+        registry
+            .register(Box::new(gcs_transfer_size_bytes.clone()))
+            .map_err(|e| {
+                PersistError::storage(format!("Failed to register gcs_transfer_size_bytes: {e}"))
+            })?;
+
         Ok(Self {
             s3_requests_total,
             s3_errors_total,
@@ -193,6 +208,7 @@ impl PersistMetrics {
             gcs_errors_total,
             gcs_latency_seconds,
             gcs_retries_total,
+            gcs_transfer_size_bytes,
             state_size_bytes,
             registry,
         })
@@ -241,6 +257,11 @@ impl PersistMetrics {
     /// Record a GCS retry
     pub fn record_gcs_retry(&self, _operation: &str) {
         self.gcs_retries_total.inc();
+    }
+
+    /// Record GCS transfer size
+    pub fn record_gcs_transfer_size(&self, size_bytes: f64) {
+        self.gcs_transfer_size_bytes.observe(size_bytes);
     }
 
     /// Record state size

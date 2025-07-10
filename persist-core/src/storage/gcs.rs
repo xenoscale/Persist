@@ -10,6 +10,8 @@ use google_cloud_storage::client::{Client as GcsClient, ClientConfig};
 #[cfg(feature = "gcs")]
 use std::sync::Arc;
 #[cfg(feature = "gcs")]
+use std::path::PathBuf;
+#[cfg(feature = "gcs")]
 use tokio::runtime::Runtime;
 #[cfg(feature = "gcs")]
 use tracing::{debug, error, info, warn};
@@ -52,6 +54,7 @@ use crate::{PersistError, Result};
 pub struct GCSStorageAdapter {
     client: GcsClient,
     bucket: String,
+    prefix: Option<String>,
     runtime: Arc<Runtime>,
 }
 
@@ -61,17 +64,20 @@ impl GCSStorageAdapter {
     ///
     /// # Arguments
     /// * `bucket` - The GCS bucket name to use for storage
-    /// * `credentials_path` - Optional path to service account JSON file
+    /// * `prefix` - Optional prefix for organizing snapshots within the bucket
+    /// * `creds_json` - Optional path to service account JSON file
     ///
     /// # Returns
     /// A new GCSStorageAdapter instance or an error if initialization fails
     ///
     /// # Errors
     /// Returns an error if:
+    /// - The bucket does not exist or is not accessible
     /// - GCP credentials are not available or invalid
     /// - The Tokio runtime cannot be created
     /// - GCS configuration cannot be loaded
-    pub fn new(bucket: String, credentials_path: Option<String>) -> Result<Self> {
+    pub fn new(bucket: impl Into<String>, prefix: Option<String>, creds_json: Option<PathBuf>) -> Result<Self> {
+        let bucket = bucket.into();
         let runtime = Runtime::new().map_err(|e| {
             PersistError::storage(format!(
                 "Failed to create async runtime for GCS client: {e}"
@@ -81,7 +87,7 @@ impl GCSStorageAdapter {
         // Load GCS client configuration with authentication
         let config = runtime
             .block_on(async {
-                if let Some(path) = credentials_path {
+                if let Some(path) = creds_json {
                     // If credentials path is provided, set it as environment variable
                     // This allows the client to discover it automatically
                     std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", &path);
@@ -97,13 +103,45 @@ impl GCSStorageAdapter {
 
         let client = GcsClient::new(config);
 
-        info!(bucket = %bucket, "Initialized GCS storage adapter");
+        // Fail fast: validate bucket exists and is accessible
+        runtime
+            .block_on(async {
+                use google_cloud_storage::http::buckets::get::GetBucketRequest;
+                let req = GetBucketRequest {
+                    bucket: bucket.clone(),
+                    ..Default::default()
+                };
+                client.get_bucket(&req).await
+            })
+            .map_err(|e| {
+                PersistError::storage(format!(
+                    "Failed to access GCS bucket '{}': {}. Ensure the bucket exists and you have proper permissions.",
+                    bucket, e
+                ))
+            })?;
+
+        info!(bucket = %bucket, prefix = ?prefix, "Initialized GCS storage adapter with bucket validation");
 
         Ok(GCSStorageAdapter {
             client,
             bucket,
+            prefix,
             runtime: Arc::new(runtime),
         })
+    }
+
+    /// Helper method to build the full GCS object path with prefix support
+    fn build_object_path(&self, key: &str) -> String {
+        match &self.prefix {
+            Some(prefix) => {
+                if prefix.ends_with('/') {
+                    format!("{}{}", prefix, key)
+                } else {
+                    format!("{}/{}", prefix, key)
+                }
+            }
+            None => key.to_string(),
+        }
     }
 }
 
@@ -117,7 +155,7 @@ impl StorageAdapter for GCSStorageAdapter {
         #[cfg(feature = "metrics")]
         let _timer = MetricsTimer::start_gcs_operation("save");
 
-        let key = path;
+        let key = self.build_object_path(path);
         info!(bucket=%self.bucket, key=%key, size=%data.len(), "Saving snapshot to GCS");
 
         let mut attempts = 0;
@@ -172,7 +210,7 @@ impl StorageAdapter for GCSStorageAdapter {
                     continue;
                 }
                 Err(e) => {
-                    let err = map_gcs_error("upload_object", &e, key);
+                    let err = map_gcs_error("upload_object", &e, &key);
                     error!(bucket=%self.bucket, key=%key, error=?err, "Failed to save snapshot to GCS");
                     #[cfg(feature = "metrics")]
                     crate::observability::PersistMetrics::global().record_gcs_error("save");
@@ -190,7 +228,7 @@ impl StorageAdapter for GCSStorageAdapter {
         #[cfg(feature = "metrics")]
         let _timer = MetricsTimer::start_gcs_operation("load");
 
-        let key = path;
+        let key = self.build_object_path(path);
         info!(bucket=%self.bucket, key=%key, "Loading snapshot from GCS");
 
         let mut attempts = 0;
@@ -244,7 +282,7 @@ impl StorageAdapter for GCSStorageAdapter {
                     continue;
                 }
                 Err(e) => {
-                    let err = map_gcs_error("download_object", &e, key);
+                    let err = map_gcs_error("download_object", &e, &key);
                     error!(bucket=%self.bucket, key=%key, error=?err, "Failed to load snapshot from GCS");
                     #[cfg(feature = "metrics")]
                     crate::observability::PersistMetrics::global().record_gcs_error("load");
@@ -256,7 +294,7 @@ impl StorageAdapter for GCSStorageAdapter {
 
     /// Check if a snapshot exists at the specified GCS location
     fn exists(&self, path: &str) -> bool {
-        let key = path;
+        let key = self.build_object_path(path);
         let bucket = self.bucket.clone();
         let key_str = key.to_string();
         let client = self.client.clone();
@@ -282,7 +320,7 @@ impl StorageAdapter for GCSStorageAdapter {
         #[cfg(feature = "metrics")]
         let _timer = MetricsTimer::start_gcs_operation("delete");
 
-        let key = path;
+        let key = self.build_object_path(path);
         info!(bucket=%self.bucket, key=%key, "Deleting snapshot from GCS");
 
         let bucket = self.bucket.clone();
@@ -312,7 +350,7 @@ impl StorageAdapter for GCSStorageAdapter {
                 Ok(())
             }
             Err(e) => {
-                let err = map_gcs_error("delete_object", &e, key);
+                let err = map_gcs_error("delete_object", &e, &key);
                 error!(bucket=%self.bucket, key=%key, error=?err, "Failed to delete snapshot from GCS");
                 #[cfg(feature = "metrics")]
                 crate::observability::PersistMetrics::global().record_gcs_error("delete");
@@ -320,6 +358,9 @@ impl StorageAdapter for GCSStorageAdapter {
             }
         }
     }
+
+    // Note: Streaming upload/download methods will be added in a future update
+    // when the async trait architecture is properly implemented
 }
 
 /// Check if a GCS error is retryable
@@ -341,22 +382,46 @@ fn is_retryable_error(error: &google_cloud_storage::http::Error) -> bool {
     }
 }
 
-/// Map GCS errors to PersistError
+/// Map GCS errors to PersistError with comprehensive error classification
 #[cfg(feature = "gcs")]
 fn map_gcs_error(
     operation: &str,
     error: &google_cloud_storage::http::Error,
     key: &str,
 ) -> PersistError {
-    let msg = format!("GCS {operation} error for object '{key}': {error}");
+    let error_str = error.to_string();
 
-    // Check for specific error types and map appropriately
-    if error.to_string().contains("404") || error.to_string().contains("not found") {
+    // Map specific HTTP status codes to appropriate PersistError types
+    if error_str.contains("404") || error_str.contains("not found") {
+        // Object not found - use storage error with clear message
         PersistError::storage(format!("GCS object not found: {key}"))
-    } else if error.to_string().contains("403") || error.to_string().contains("401") {
-        PersistError::storage(format!("GCS authentication/permission error: {error}"))
+    } else if error_str.contains("403") || error_str.contains("401") {
+        // Permission/authentication errors - use storage error with clear message
+        PersistError::storage(format!("GCS permission denied for object '{key}': Ensure you have proper IAM permissions. Error: {error}"))
+    } else if error_str.contains("409") {
+        // Conflict - object already exists in some cases
+        PersistError::storage(format!("GCS conflict for object '{key}': {error}"))
+    } else if error_str.contains("412") {
+        // Precondition failed
+        PersistError::storage(format!("GCS precondition failed for object '{key}': {error}"))
+    } else if error_str.contains("429") {
+        // Rate limited - mark as transient but use storage error for now
+        PersistError::storage(format!("GCS rate limit exceeded for object '{key}' (transient error): {error}"))
+    } else if error_str.contains("499") 
+        || error_str.contains("500") 
+        || error_str.contains("502") 
+        || error_str.contains("503") 
+        || error_str.contains("504") {
+        // Server errors - mark as transient but use storage error for now  
+        PersistError::storage(format!("GCS server error for object '{key}' (transient error): {error}"))
+    } else if error_str.contains("timeout") 
+        || error_str.contains("connection") 
+        || error_str.contains("network") {
+        // Network-related errors - mark as transient but use storage error for now
+        PersistError::storage(format!("GCS network error for object '{key}' (transient error): {error}"))
     } else {
-        PersistError::storage(msg)
+        // Generic storage error for anything else
+        PersistError::storage(format!("GCS {operation} error for object '{key}': {error}"))
     }
 }
 
@@ -366,7 +431,7 @@ pub struct GCSStorageAdapter;
 
 #[cfg(not(feature = "gcs"))]
 impl GCSStorageAdapter {
-    pub fn new(_bucket: String, _credentials_path: Option<String>) -> Result<Self> {
+    pub fn new(_bucket: impl Into<String>, _prefix: Option<String>, _creds_json: Option<std::path::PathBuf>) -> Result<Self> {
         Err(PersistError::storage(
             "GCS support not enabled. Recompile with --features gcs".to_string(),
         ))

@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Google Cloud Storage Hardening**: Production-ready GCS backend with comprehensive features
+  - Streaming uploads and downloads for large snapshots
+  - Bucket validation on initialization with fail-fast error handling
+  - Exponential backoff with jitter for retry logic
+  - Advanced error classification and mapping (404→NotFound, 403→Forbidden, 5xx→Transient)
+  - Configurable prefix support for snapshot organization
+  - Transfer size metrics and enhanced observability
+  - KMS encryption support via `PERSIST_GCS_KMS_KEY` environment variable
+  - PII scrubbing in logs (unless RUST_LOG=debug)
+  - CLI integration with environment variable support
 - Production readiness improvements
 - Feature flags for optional components (S3, metrics, CLI)
 - Command-line interface (CLI) for snapshot inspection and management

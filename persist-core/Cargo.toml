@@ -29,8 +29,8 @@ aws-sdk-s3 = { version = "1.96", optional = true }
 aws-smithy-runtime-api = { version = "1.0", optional = true }
 
 # Google Cloud Storage dependencies (optional)
-google-cloud-storage = { version = "0.24", optional = true }
-google-cloud-auth = { version = "0.16", optional = true }
+google-cloud-storage = { version = "0.24.*", optional = true }
+google-cloud-auth = { version = "0.16.*", optional = true }
 tokio = { version = "1.28", features = ["full"] }
 rayon = "1.8"
 
