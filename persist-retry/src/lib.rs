@@ -217,7 +217,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_permanent_failure() {
-        let result = with_backoff("test_op", |_attempt| {
+        let result: RetryResult<&str> = with_backoff("test_op", |_attempt| {
             Box::pin(async {
                 Err(permanent_error!(
                     "test_op",
