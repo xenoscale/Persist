@@ -44,7 +44,7 @@ use crate::{PersistError, Result};
 /// // Set environment variable:
 /// // export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 ///
-/// let adapter = GCSStorageAdapter::new("my-snapshots-bucket".to_string(), None)?;
+/// let adapter = GCSStorageAdapter::new("my-snapshots-bucket".to_string(), None, None)?;
 /// let data = b"compressed snapshot data";
 /// adapter.save(data, "agent1/session1/snapshot.json.gz")?;
 /// # Ok(())
