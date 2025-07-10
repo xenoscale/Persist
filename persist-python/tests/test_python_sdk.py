@@ -9,38 +9,50 @@ import tempfile
 import threading
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 
-# Mock LangChain for testing if not available
+if TYPE_CHECKING:
+    from langchain.memory import ConversationBufferMemory
+    from langchain.schema import AIMessage, BaseMessage, HumanMessage
+    from langchain.schema.runnable import Runnable
+
+# Mock LangChain for testing if not available at runtime
 try:
     from langchain.memory import ConversationBufferMemory
     from langchain.schema import AIMessage, BaseMessage, HumanMessage
     from langchain.schema.runnable import Runnable
 
     LANGCHAIN_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover - optional dependency
     LANGCHAIN_AVAILABLE = False
-    # Create mock classes for testing
-    class BaseMessage:
+
+    class _BaseMessage:
         def __init__(self, content, **kwargs):
             self.content = content
             for k, v in kwargs.items():
                 setattr(self, k, v)
 
-    class HumanMessage(BaseMessage):
+    class _HumanMessage(_BaseMessage):
         pass
 
-    class AIMessage(BaseMessage):
+    class _AIMessage(_BaseMessage):
         pass
 
-    class ConversationBufferMemory:
+    class _ConversationBufferMemory:
         def __init__(self):
             self.chat_memory = []
 
-    class Runnable:
+    class _Runnable:
         pass
+
+    BaseMessage = _BaseMessage
+    HumanMessage = _HumanMessage
+    AIMessage = _AIMessage
+    ConversationBufferMemory = _ConversationBufferMemory
+    Runnable = _Runnable
 
 # Try to import the persist module
 try:

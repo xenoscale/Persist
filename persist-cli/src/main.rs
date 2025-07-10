@@ -370,10 +370,6 @@ async fn delete_snapshot(
                     .gcs_bucket
                     .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("GCS bucket not configured"))?;
-                let credentials_path = storage_config
-                    .gcs_credentials_path
-                    .as_ref()
-                    .map(|p| p.to_string_lossy().to_string());
                 let prefix = storage_config.gcs_prefix.clone();
                 let credentials_path = storage_config.gcs_credentials_path.clone();
                 let storage = GCSStorageAdapter::new(bucket.to_string(), prefix, credentials_path)?;
