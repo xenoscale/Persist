@@ -11,6 +11,22 @@ pub mod local;
 pub mod s3;
 
 use crate::Result;
+use async_trait::async_trait;
+use futures::io::AsyncRead;
+use once_cell::sync::Lazy;
+use std::sync::Arc;
+
+#[cfg(feature = "async-rt")]
+use tokio::runtime::Runtime;
+
+#[cfg(feature = "async-rt")]
+static GLOBAL_RT: Lazy<Runtime> = Lazy::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(num_cpus::get().max(4))
+        .enable_all()
+        .build()
+        .expect("Failed to create global async runtime")
+});
 
 /// Storage abstraction for saving and loading snapshot data
 ///
@@ -54,6 +70,99 @@ pub trait StorageAdapter {
     /// # Returns
     /// Result indicating success or failure
     fn delete(&self, path: &str) -> Result<()>;
+}
+
+/// Async storage abstraction for save and load operations
+///
+/// This trait defines an async interface for storage operations, enabling
+/// better performance for I/O-bound operations and non-blocking behavior.
+#[async_trait]
+pub trait AsyncStorageAdapter: Send + Sync {
+    /// Save snapshot data asynchronously from a reader
+    ///
+    /// # Arguments
+    /// * `reader` - Async reader containing the data to save
+    /// * `path` - The storage location (interpretation depends on implementation)
+    ///
+    /// # Returns
+    /// Result indicating success or failure
+    async fn save(&self, reader: impl AsyncRead + Send + 'static, path: &str) -> Result<()>;
+
+    /// Load snapshot data asynchronously
+    ///
+    /// # Arguments
+    /// * `path` - The storage location to load from
+    ///
+    /// # Returns
+    /// An async reader providing the loaded data or an error
+    async fn load(&self, path: &str) -> Result<Box<dyn AsyncRead + Send + Unpin>>;
+
+    /// Check if a snapshot exists at the specified location
+    ///
+    /// # Arguments
+    /// * `path` - The storage location to check
+    ///
+    /// # Returns
+    /// True if the snapshot exists, false otherwise
+    async fn exists(&self, path: &str) -> Result<bool>;
+
+    /// Delete a snapshot from the specified location
+    ///
+    /// # Arguments
+    /// * `path` - The storage location to delete
+    ///
+    /// # Returns
+    /// Result indicating success or failure
+    async fn delete(&self, path: &str) -> Result<()>;
+}
+
+/// Blocking wrapper for async storage adapters
+///
+/// This wrapper allows async storage implementations to be used in sync contexts
+/// by using a global runtime to block on async operations.
+#[cfg(feature = "async-rt")]
+pub struct BlockingStorage<A: AsyncStorageAdapter> {
+    inner: Arc<A>,
+}
+
+#[cfg(feature = "async-rt")]
+impl<A: AsyncStorageAdapter> BlockingStorage<A> {
+    pub fn new(adapter: A) -> Self {
+        Self {
+            inner: Arc::new(adapter),
+        }
+    }
+}
+
+#[cfg(feature = "async-rt")]
+impl<A: AsyncStorageAdapter> StorageAdapter for BlockingStorage<A> {
+    fn save(&self, data: &[u8], path: &str) -> Result<()> {
+        let data_owned = data.to_vec();
+        let reader = futures::io::Cursor::new(data_owned);
+        GLOBAL_RT.block_on(self.inner.save(reader, path))
+    }
+
+    fn load(&self, path: &str) -> Result<Vec<u8>> {
+        use futures::io::AsyncReadExt;
+
+        GLOBAL_RT.block_on(async {
+            let mut reader = self.inner.load(path).await?;
+            let mut data = Vec::new();
+            reader
+                .read_to_end(&mut data)
+                .await
+                .map_err(|e| crate::PersistError::storage(format!("Failed to read data: {e}")))?;
+            Ok(data)
+        })
+    }
+
+    fn exists(&self, path: &str) -> bool {
+        GLOBAL_RT.block_on(self.inner.exists(path)).unwrap_or(false)
+    }
+
+    fn delete(&self, path: &str) -> Result<()> {
+        GLOBAL_RT.block_on(self.inner.delete(path))
+    }
 }
 
 // Re-export types for convenience

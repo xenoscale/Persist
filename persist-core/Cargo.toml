@@ -8,38 +8,50 @@ repository.workspace = true
 description = "Core engine for agent snapshot and restore functionality"
 
 [features]
-default = ["s3", "gcs"]
-s3 = ["aws-config", "aws-sdk-s3", "aws-smithy-runtime-api"]
-gcs = ["google-cloud-storage", "google-cloud-auth"]
-metrics = ["prometheus"]
+default = ["local"]
+local = []
+s3 = ["dep:aws-config", "dep:aws-sdk-s3", "dep:aws-smithy-runtime-api", "async-rt"]
+gcs = ["dep:google-cloud-storage", "dep:google-cloud-auth", "async-rt"]
+async-rt = ["dep:tokio"]
+metrics = ["dep:prometheus"]
 cli = []
 
 [dependencies]
-serde.workspace = true
-serde_json.workspace = true
-sha2.workspace = true
-flate2.workspace = true
-thiserror.workspace = true
-chrono.workspace = true
-uuid.workspace = true
-tempfile = "3.0"
+# Core dependencies
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+flate2 = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+tempfile = { workspace = true }
+bytes = { workspace = true }
+rayon = { workspace = true }
+backoff = { workspace = true }
+once_cell = { workspace = true }
+num_cpus = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# Async runtime (optional)
+tokio = { workspace = true, optional = true }
 
 # AWS SDK dependencies for S3 storage backend (optional)
-aws-config = { version = "1.1", optional = true }
-aws-sdk-s3 = { version = "1.96", optional = true }
-aws-smithy-runtime-api = { version = "1.0", optional = true }
+aws-config = { workspace = true, optional = true }
+aws-sdk-s3 = { workspace = true, optional = true }
+aws-smithy-runtime-api = { workspace = true, optional = true }
 
 # Google Cloud Storage dependencies (optional)
-google-cloud-storage = { version = "0.24.*", optional = true }
-google-cloud-auth = { version = "0.16.*", optional = true }
-tokio = { version = "1.28", features = ["full"] }
-rayon = "1.8"
-backoff = "0.4"
-bytes = "1.0"
+google-cloud-storage = { workspace = true, optional = true }
+google-cloud-auth = { workspace = true, optional = true }
+
+# Retry logic
+persist-retry = { path = "../persist-retry", features = ["async-rt"] }
 
 # Observability dependencies
-tracing.workspace = true
-tracing-subscriber.workspace = true
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 # OpenTelemetry dependencies temporarily disabled due to version conflicts
 # tracing-opentelemetry.workspace = true
 # opentelemetry.workspace = true
