@@ -346,8 +346,13 @@ build_python() {
     
     if command_exists "maturin"; then
         execute_cmd "cd persist-python && maturin develop --release && cd .." "Python extension build"
-        PYTHON_EXTENSION_BUILT=true
-        print_success "Python extension built successfully"
+        if python3 -c "import persist" >/dev/null 2>&1; then
+            PYTHON_EXTENSION_BUILT=true
+            print_success "Python extension built successfully"
+        else
+            PYTHON_EXTENSION_BUILT=false
+            print_warning "Python extension built but module could not be imported"
+        fi
     else
         PYTHON_EXTENSION_BUILT=false
         print_warning "maturin not available, skipping Python extension build"
@@ -375,14 +380,26 @@ run_tests() {
     print_success "Rust tests completed"
     
     # Run Python tests
-    if [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && [ "$PYTHON_EXTENSION_BUILT" = true ] && command_exists "pytest"; then
-        execute_cmd "cd persist-python && pytest && cd .." "Python tests"
-        print_success "Python tests completed"
-    elif [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && [ "$PYTHON_EXTENSION_BUILT" = false ]; then
-        print_warning "Python extension not built, skipping Python tests"
-        print_info "The persist module is required for Python tests. Install maturin to build the extension:"
-        print_info "  pip install maturin"
-    elif [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && [ "$PYTHON_EXTENSION_BUILT" = true ]; then
+    if [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && command_exists "pytest"; then
+        if ! python3 -c "import persist" >/dev/null 2>&1; then
+            if command_exists "maturin"; then
+                print_info "Persist module not importable - rebuilding Python extension"
+                execute_cmd "cd persist-python && maturin develop --release && cd .." "Python extension rebuild"
+            else
+                print_warning "Persist module not importable and maturin not available, skipping Python tests"
+                return
+            fi
+        fi
+
+        if python3 -c "import persist" >/dev/null 2>&1; then
+            PYTHON_EXTENSION_BUILT=true
+            execute_cmd "cd persist-python && pytest && cd .." "Python tests"
+            print_success "Python tests completed"
+        else
+            PYTHON_EXTENSION_BUILT=false
+            print_warning "Persist module still not importable, skipping Python tests"
+        fi
+    elif [ "$SKIP_PYTHON" = false ] && [ -d "persist-python" ] && ! command_exists "pytest"; then
         print_warning "pytest not available, skipping Python tests"
         print_info "Install with: pip install pytest"
     fi
