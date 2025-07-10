@@ -33,6 +33,8 @@ google-cloud-storage = { version = "0.24.*", optional = true }
 google-cloud-auth = { version = "0.16.*", optional = true }
 tokio = { version = "1.28", features = ["full"] }
 rayon = "1.8"
+backoff = "0.4"
+bytes = "1.0"
 
 # Observability dependencies
 tracing.workspace = true
