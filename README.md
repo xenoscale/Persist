@@ -9,7 +9,7 @@ Enterprise-grade agent snapshot and restore system for AI agents, designed to ca
 
 - **Manual Snapshot/Restore APIs**: Explicit save/load functions for agent state management
 - **LangChain Integration**: Native support for LangChain agents and chains
-- **Local Disk Storage**: Efficient local filesystem storage with pluggable architecture for future cloud support
+- **Multi-Backend Storage**: Local filesystem, Amazon S3, and Google Cloud Storage with pluggable architecture
 - **Compressed Snapshots**: Automatic gzip compression to minimize storage footprint
 - **Rich Metadata**: Comprehensive tracking with unique IDs, timestamps, and integrity verification
 - **Python SDK**: Ergonomic Python interface powered by a high-performance Rust core
@@ -84,6 +84,42 @@ metadata = persist.get_metadata(
     "agents/conversation_bot/session_123/snapshot.json.gz",
     storage_mode="s3",
     s3_bucket="my-ai-snapshots-bucket"
+)
+```
+
+### Google Cloud Storage
+
+```python
+import persist
+import os
+
+# Configure GCS credentials
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/path/to/service-account.json"
+os.environ["PERSIST_GCS_BUCKET"] = "my-ai-snapshots-bucket"
+os.environ["PERSIST_GCS_PREFIX"] = "production/agents"  # Optional
+
+# Save snapshot to GCS
+persist.snapshot(
+    agent, 
+    "conversation_bot/session_123/snapshot.json.gz",
+    storage_mode="gcs",
+    gcs_bucket="my-ai-snapshots-bucket",
+    agent_id="conversation_bot",
+    description="Production GCS snapshot"
+)
+
+# Restore from GCS
+restored_agent = persist.restore(
+    "conversation_bot/session_123/snapshot.json.gz",
+    storage_mode="gcs", 
+    gcs_bucket="my-ai-snapshots-bucket"
+)
+
+# GCS metadata operations
+metadata = persist.get_metadata(
+    "conversation_bot/session_123/snapshot.json.gz",
+    storage_mode="gcs",
+    gcs_bucket="my-ai-snapshots-bucket"
 )
 ```
 
@@ -189,7 +225,7 @@ Persist follows hexagonal architecture principles with clear separation of conce
 
 - **`persist-core`** (Rust): High-performance core engine with pluggable storage and compression
 - **`persist-python`** (Python): PyO3-based bindings providing a native Python experience
-- **Storage Adapters**: Local filesystem (included), S3 and other cloud storage (future)
+- **Storage Adapters**: Local filesystem, Amazon S3, Google Cloud Storage (included), other cloud storage (future)
 - **Compression Adapters**: Gzip (included), Zstandard and others (future)
 
 ### Design Principles
@@ -362,8 +398,8 @@ Snapshots are stored as compressed JSON files containing:
 - ✅ Comprehensive end-to-end testing
 
 ### Future Enhancements
-- 🔄 Automated periodic snapshots
-- ☁️ Additional cloud storage backends (Azure Blob, GCP Storage)
+- 🔄 Automated periodic snapshots  
+- ☁️ Additional cloud storage backends (Azure Blob Storage)
 - 🔐 Encryption at rest
 - 🤖 Support for additional AI frameworks (Auto-GPT, HuggingFace)
 - 📊 Snapshot management UI

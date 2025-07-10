@@ -10,6 +10,7 @@ use crate::{
     SnapshotMetadata,
 };
 use serde_json;
+use std::path::PathBuf;
 
 /// Container for the complete snapshot data (metadata + agent state)
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -337,9 +338,9 @@ pub fn create_s3_engine(
 /// ```
 pub fn create_gcs_engine(
     bucket: String,
-    credentials_path: Option<String>,
+    credentials_path: Option<PathBuf>,
 ) -> Result<SnapshotEngine<crate::storage::GCSStorageAdapter, crate::compression::GzipCompressor>> {
-    let storage = crate::storage::GCSStorageAdapter::new(bucket, credentials_path)?;
+    let storage = crate::storage::GCSStorageAdapter::new(bucket, None, credentials_path)?;
     Ok(SnapshotEngine::new(
         storage,
         crate::compression::GzipCompressor::new(),
@@ -400,10 +401,9 @@ pub fn create_engine_from_config(
             let bucket = config.gcs_bucket.ok_or_else(|| {
                 PersistError::validation("GCS bucket name is required for GCS backend")
             })?;
-            let credentials_path = config
-                .gcs_credentials_path
-                .map(|p| p.to_string_lossy().to_string());
-            let storage = crate::storage::GCSStorageAdapter::new(bucket, credentials_path)?;
+            let prefix = config.gcs_prefix;
+            let credentials_path = config.gcs_credentials_path;
+            let storage = crate::storage::GCSStorageAdapter::new(bucket, prefix, credentials_path)?;
             let engine = SnapshotEngine::new(storage, crate::compression::GzipCompressor::new());
             Ok(Box::new(engine))
         }

@@ -151,7 +151,23 @@ fn create_storage_config(cli: &Cli) -> Result<StorageConfig, anyhow::Error> {
             Ok(config)
         }
         StorageBackend::S3 => Ok(StorageConfig::s3_with_bucket(path)),
-        StorageBackend::GCS => Ok(StorageConfig::gcs_with_bucket(path)),
+        StorageBackend::GCS => {
+            // Support additional GCS configuration through environment variables
+            let prefix = std::env::var("PERSIST_GCS_PREFIX").ok();
+            let credentials_path = std::env::var("GOOGLE_APPLICATION_CREDENTIALS")
+                .ok()
+                .map(PathBuf::from);
+            
+            if let Some(prefix) = prefix {
+                Ok(StorageConfig::gcs_with_bucket_prefix_and_credentials(
+                    path, prefix, credentials_path
+                ))
+            } else if let Some(creds) = credentials_path {
+                Ok(StorageConfig::gcs_with_bucket_and_credentials(path, creds))
+            } else {
+                Ok(StorageConfig::gcs_with_bucket(path))
+            }
+        }
     }
 }
 
@@ -358,7 +374,9 @@ async fn delete_snapshot(
                     .gcs_credentials_path
                     .as_ref()
                     .map(|p| p.to_string_lossy().to_string());
-                let storage = GCSStorageAdapter::new(bucket.to_string(), credentials_path)?;
+                let prefix = storage_config.gcs_prefix.clone();
+                let credentials_path = storage_config.gcs_credentials_path.clone();
+                let storage = GCSStorageAdapter::new(bucket.to_string(), prefix, credentials_path)?;
                 storage.delete(snapshot_id)?;
                 println!("✓ Snapshot deleted successfully");
             }

@@ -31,8 +31,12 @@ pub struct StorageConfig {
     pub local_base_path: Option<PathBuf>,
     /// GCS bucket name (required for GCS backend)
     pub gcs_bucket: Option<String>,
+    /// GCS object prefix for organizing snapshots (optional)
+    pub gcs_prefix: Option<String>,
     /// Path to GCP service account credentials JSON (optional, uses environment if not provided)
     pub gcs_credentials_path: Option<PathBuf>,
+    /// GCS operation timeout in seconds (optional, defaults to 30s)
+    pub gcs_timeout_seconds: Option<u64>,
 }
 
 impl StorageConfig {
@@ -44,7 +48,9 @@ impl StorageConfig {
             s3_region: None,
             local_base_path: None,
             gcs_bucket: None,
+            gcs_prefix: None,
             gcs_credentials_path: None,
+            gcs_timeout_seconds: None,
         }
     }
 
@@ -56,7 +62,9 @@ impl StorageConfig {
             s3_region: None, // Will use AWS environment default
             local_base_path: None,
             gcs_bucket: None,
+            gcs_prefix: None,
             gcs_credentials_path: None,
+            gcs_timeout_seconds: None,
         }
     }
 
@@ -68,7 +76,9 @@ impl StorageConfig {
             s3_region: None,
             local_base_path: None,
             gcs_bucket: None,
+            gcs_prefix: None,
             gcs_credentials_path: None,
+            gcs_timeout_seconds: None,
         }
     }
 
@@ -80,7 +90,9 @@ impl StorageConfig {
             s3_region: Some(region),
             local_base_path: None,
             gcs_bucket: None,
+            gcs_prefix: None,
             gcs_credentials_path: None,
+            gcs_timeout_seconds: None,
         }
     }
 
@@ -92,7 +104,9 @@ impl StorageConfig {
             s3_region: None,
             local_base_path: None,
             gcs_bucket: Some("persist-default-gcs-bucket".to_string()),
+            gcs_prefix: None,
             gcs_credentials_path: None,
+            gcs_timeout_seconds: Some(30), // Default 30 second timeout
         }
     }
 
@@ -104,7 +118,9 @@ impl StorageConfig {
             s3_region: None,
             local_base_path: None,
             gcs_bucket: Some(bucket),
+            gcs_prefix: None,
             gcs_credentials_path: None,
+            gcs_timeout_seconds: Some(30),
         }
     }
 
@@ -116,7 +132,23 @@ impl StorageConfig {
             s3_region: None,
             local_base_path: None,
             gcs_bucket: Some(bucket),
+            gcs_prefix: None,
             gcs_credentials_path: Some(credentials_path),
+            gcs_timeout_seconds: Some(30),
+        }
+    }
+
+    /// Create a GCS configuration with bucket, prefix, and credentials
+    pub fn gcs_with_bucket_prefix_and_credentials(bucket: String, prefix: String, credentials_path: Option<PathBuf>) -> Self {
+        StorageConfig {
+            backend: StorageBackend::GCS,
+            s3_bucket: None,
+            s3_region: None,
+            local_base_path: None,
+            gcs_bucket: Some(bucket),
+            gcs_prefix: Some(prefix),
+            gcs_credentials_path: credentials_path,
+            gcs_timeout_seconds: Some(30),
         }
     }
 
