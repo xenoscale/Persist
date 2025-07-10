@@ -9,14 +9,14 @@ Google Cloud Storage client library.
 This implementation has been hardened with the following improvements:
 
 ### High Priority Fixes:
-1. **Runtime-in-Runtime Prevention**: Added check to prevent panic when creating the adapter 
+1. **Runtime-in-Runtime Prevention**: Added check to prevent panic when creating the adapter
    inside an existing Tokio runtime
-2. **Improved Authentication**: Uses temporary environment variable scoping instead of 
+2. **Improved Authentication**: Uses temporary environment variable scoping instead of
    global mutation for service account credentials
-3. **Exponential Backoff**: Replaced manual retry logic with proper exponential backoff 
+3. **Exponential Backoff**: Replaced manual retry logic with proper exponential backoff
    using the `backoff` crate
 4. **Memory Optimization**: Uses `Bytes` type to avoid copying data on each retry attempt
-5. **Structured Error Handling**: Improved error classification with proper retryable vs 
+5. **Structured Error Handling**: Improved error classification with proper retryable vs
    permanent error detection
 
 ### Medium Priority Improvements:
@@ -40,19 +40,19 @@ This implementation has been hardened with the following improvements:
 */
 
 #[cfg(feature = "gcs")]
+use backoff::ExponentialBackoff;
+#[cfg(feature = "gcs")]
+use bytes::Bytes;
+#[cfg(feature = "gcs")]
 use google_cloud_storage::client::{Client as GcsClient, ClientConfig};
 #[cfg(feature = "gcs")]
-use std::sync::Arc;
-#[cfg(feature = "gcs")]
 use std::path::PathBuf;
+#[cfg(feature = "gcs")]
+use std::sync::Arc;
 #[cfg(feature = "gcs")]
 use tokio::runtime::Runtime;
 #[cfg(feature = "gcs")]
 use tracing::{debug, error, info, warn};
-#[cfg(feature = "gcs")]
-use backoff::ExponentialBackoff;
-#[cfg(feature = "gcs")]
-use bytes::Bytes;
 
 #[cfg(feature = "gcs")]
 use super::StorageAdapter;
@@ -114,19 +114,23 @@ impl GCSStorageAdapter {
     /// - GCP credentials are not available or invalid
     /// - The Tokio runtime cannot be created
     /// - GCS configuration cannot be loaded
-    pub fn new(bucket: impl Into<String>, prefix: Option<String>, creds_json: Option<PathBuf>) -> Result<Self> {
+    pub fn new(
+        bucket: impl Into<String>,
+        prefix: Option<String>,
+        creds_json: Option<PathBuf>,
+    ) -> Result<Self> {
         let bucket = bucket.into();
-        
+
         // Validate bucket name
         Self::validate_bucket_name(&bucket)?;
-        
+
         // Check if we're already inside a Tokio runtime to prevent panic
         if tokio::runtime::Handle::try_current().is_ok() {
             return Err(PersistError::storage(
                 "Cannot use blocking GCS adapter inside Tokio runtime. Consider using an async version instead."
             ));
         }
-        
+
         let runtime = Runtime::new().map_err(|e| {
             PersistError::storage(format!(
                 "Failed to create async runtime for GCS client: {e}"
@@ -140,19 +144,21 @@ impl GCSStorageAdapter {
                     // Create a temporary environment scope to avoid global mutation
                     // Store original value if it exists
                     let original_creds = std::env::var("GOOGLE_APPLICATION_CREDENTIALS").ok();
-                    
+
                     // Set the credentials path temporarily
                     std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", &path);
-                    
+
                     // Load the configuration
                     let result = ClientConfig::default().with_auth().await;
-                    
+
                     // Restore original environment state
                     match original_creds {
-                        Some(original) => std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", original),
+                        Some(original) => {
+                            std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", original)
+                        }
                         None => std::env::remove_var("GOOGLE_APPLICATION_CREDENTIALS"),
                     }
-                    
+
                     result
                 } else {
                     // Use default authentication flow which will check:
@@ -178,8 +184,7 @@ impl GCSStorageAdapter {
             })
             .map_err(|e| {
                 PersistError::storage(format!(
-                    "Failed to access GCS bucket '{}': {}. Ensure the bucket exists and you have proper permissions.",
-                    bucket, e
+                    "Failed to access GCS bucket '{bucket}': {e}. Ensure the bucket exists and you have proper permissions."
                 ))
             })?;
 
@@ -198,20 +203,20 @@ impl GCSStorageAdapter {
         if bucket.is_empty() {
             return Err(PersistError::validation("Bucket name cannot be empty"));
         }
-        
+
         if bucket.len() < 3 || bucket.len() > 63 {
             return Err(PersistError::validation(
-                "Bucket name must be between 3 and 63 characters"
+                "Bucket name must be between 3 and 63 characters",
             ));
         }
-        
+
         // Check for basic invalid characters (simplified validation)
         if bucket.contains("//") || bucket.contains("..") {
             return Err(PersistError::validation(
-                "Bucket name contains invalid character sequences"
+                "Bucket name contains invalid character sequences",
             ));
         }
-        
+
         Ok(())
     }
 
@@ -220,9 +225,9 @@ impl GCSStorageAdapter {
         match &self.prefix {
             Some(prefix) => {
                 if prefix.ends_with('/') {
-                    format!("{}{}", prefix, key)
+                    format!("{prefix}{key}")
                 } else {
-                    format!("{}/{}", prefix, key)
+                    format!("{prefix}/{key}")
                 }
             }
             None => key.to_string(),
@@ -245,7 +250,7 @@ impl StorageAdapter for GCSStorageAdapter {
 
         // Convert to Bytes to avoid copying on each retry
         let data_bytes = Bytes::copy_from_slice(data);
-        
+
         // Use proper exponential backoff instead of manual sleep
         let backoff = ExponentialBackoff {
             max_elapsed_time: Some(std::time::Duration::from_secs(60)),
@@ -260,7 +265,7 @@ impl StorageAdapter for GCSStorageAdapter {
         let result = {
             let bucket_clone = bucket.clone();
             let key_clone = key_str.clone();
-            
+
             backoff::retry(backoff, || {
                 let bucket = bucket_clone.clone();
                 let key_for_async = key_clone.clone();
@@ -278,7 +283,9 @@ impl StorageAdapter for GCSStorageAdapter {
                     };
 
                     let upload_type = UploadType::Simple(Media::new(key_for_async.clone()));
-                    client.upload_object(&req, data_owned.to_vec(), &upload_type).await
+                    client
+                        .upload_object(&req, data_owned.to_vec(), &upload_type)
+                        .await
                 });
 
                 match result {
@@ -344,7 +351,7 @@ impl StorageAdapter for GCSStorageAdapter {
         let result = {
             let bucket_clone = bucket.clone();
             let key_clone = key_str.clone();
-            
+
             backoff::retry(backoff, || {
                 let bucket = bucket_clone.clone();
                 let key_for_async = key_clone.clone();
@@ -493,15 +500,15 @@ impl Drop for GCSStorageAdapter {
 #[cfg(feature = "gcs")]
 fn is_retryable_error(error: &google_cloud_storage::http::Error) -> bool {
     use google_cloud_storage::http::Error;
-    
+
     match error {
         // Use structured error matching instead of string matching
         Error::HttpClient(err) => {
             // Network-related errors are retryable
-            err.to_string().contains("timeout") ||
-            err.to_string().contains("connection") ||
-            err.to_string().contains("network")
-        },
+            err.to_string().contains("timeout")
+                || err.to_string().contains("connection")
+                || err.to_string().contains("network")
+        }
         Error::Response(response) => {
             // Check if response contains retryable status codes
             let response_str = response.to_string();
@@ -509,19 +516,19 @@ fn is_retryable_error(error: &google_cloud_storage::http::Error) -> bool {
             response_str.contains("500") || // Internal server error
             response_str.contains("502") || // Bad gateway
             response_str.contains("503") || // Service unavailable
-            response_str.contains("504")    // Gateway timeout
-        },
+            response_str.contains("504") // Gateway timeout
+        }
         Error::TokenSource(_) => false, // Auth errors are not retryable
         _ => {
             // Fallback to string matching for other error types
             let error_str = error.to_string();
-            error_str.contains("timeout") ||
-            error_str.contains("connection") ||
-            error_str.contains("network") ||
-            error_str.contains("500") ||
-            error_str.contains("502") ||
-            error_str.contains("503") ||
-            error_str.contains("504")
+            error_str.contains("timeout")
+                || error_str.contains("connection")
+                || error_str.contains("network")
+                || error_str.contains("500")
+                || error_str.contains("502")
+                || error_str.contains("503")
+                || error_str.contains("504")
         }
     }
 }
@@ -534,7 +541,7 @@ fn map_gcs_error(
     key: &str,
 ) -> PersistError {
     use google_cloud_storage::http::Error;
-    
+
     match error {
         Error::Response(response) => {
             let response_str = response.to_string();
@@ -547,13 +554,18 @@ fn map_gcs_error(
             } else if response_str.contains("409") {
                 PersistError::storage(format!("GCS conflict for object '{key}': {response_str}"))
             } else if response_str.contains("412") {
-                PersistError::storage(format!("GCS precondition failed for object '{key}': {response_str}"))
+                PersistError::storage(format!(
+                    "GCS precondition failed for object '{key}': {response_str}"
+                ))
             } else if response_str.contains("429") {
                 PersistError::storage(format!(
                     "GCS rate limit exceeded for object '{key}' (transient error): {response_str}"
                 ))
-            } else if response_str.contains("500") || response_str.contains("502") || 
-                      response_str.contains("503") || response_str.contains("504") {
+            } else if response_str.contains("500")
+                || response_str.contains("502")
+                || response_str.contains("503")
+                || response_str.contains("504")
+            {
                 PersistError::storage(format!(
                     "GCS server error for object '{key}' (transient error): {response_str}"
                 ))
@@ -562,17 +574,13 @@ fn map_gcs_error(
                     "GCS {operation} error for object '{key}': {response_str}"
                 ))
             }
-        },
-        Error::HttpClient(err) => {
-            PersistError::storage(format!(
-                "GCS network error for object '{key}' (transient error): {err}"
-            ))
-        },
-        Error::TokenSource(err) => {
-            PersistError::storage(format!(
-                "GCS authentication error for object '{key}': {err}"
-            ))
-        },
+        }
+        Error::HttpClient(err) => PersistError::storage(format!(
+            "GCS network error for object '{key}' (transient error): {err}"
+        )),
+        Error::TokenSource(err) => PersistError::storage(format!(
+            "GCS authentication error for object '{key}': {err}"
+        )),
         _ => {
             // Fallback for other error types
             PersistError::storage(format!("GCS {operation} error for object '{key}': {error}"))
@@ -586,10 +594,15 @@ pub struct GCSStorageAdapter;
 
 #[cfg(not(feature = "gcs"))]
 impl GCSStorageAdapter {
-    pub fn new(_bucket: impl Into<String>, _prefix: Option<String>, _creds_json: Option<std::path::PathBuf>) -> Result<Self> {
+    pub fn new(
+        _bucket: impl Into<String>,
+        _prefix: Option<String>,
+        _creds_json: Option<std::path::PathBuf>,
+    ) -> Result<Self> {
         Err(PersistError::storage(
             "GCS support not enabled. Please enable the 'gcs' feature: \
-            Add 'gcs' to your Cargo.toml features or compile with --features gcs".to_string(),
+            Add 'gcs' to your Cargo.toml features or compile with --features gcs"
+                .to_string(),
         ))
     }
 }

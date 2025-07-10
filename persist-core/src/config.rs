@@ -139,7 +139,11 @@ impl StorageConfig {
     }
 
     /// Create a GCS configuration with bucket, prefix, and credentials
-    pub fn gcs_with_bucket_prefix_and_credentials(bucket: String, prefix: String, credentials_path: Option<PathBuf>) -> Self {
+    pub fn gcs_with_bucket_prefix_and_credentials(
+        bucket: String,
+        prefix: String,
+        credentials_path: Option<PathBuf>,
+    ) -> Self {
         StorageConfig {
             backend: StorageBackend::GCS,
             s3_bucket: None,

@@ -157,10 +157,12 @@ fn create_storage_config(cli: &Cli) -> Result<StorageConfig, anyhow::Error> {
             let credentials_path = std::env::var("GOOGLE_APPLICATION_CREDENTIALS")
                 .ok()
                 .map(PathBuf::from);
-            
+
             if let Some(prefix) = prefix {
                 Ok(StorageConfig::gcs_with_bucket_prefix_and_credentials(
-                    path, prefix, credentials_path
+                    path,
+                    prefix,
+                    credentials_path,
                 ))
             } else if let Some(creds) = credentials_path {
                 Ok(StorageConfig::gcs_with_bucket_and_credentials(path, creds))

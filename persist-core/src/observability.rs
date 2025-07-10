@@ -126,7 +126,9 @@ impl PersistMetrics {
             "Size of data transferred in GCS operations",
         ))
         .map_err(|e| {
-            PersistError::storage(format!("Failed to create gcs_transfer_size_bytes metric: {e}"))
+            PersistError::storage(format!(
+                "Failed to create gcs_transfer_size_bytes metric: {e}"
+            ))
         })?;
 
         let state_size_bytes = Histogram::with_opts(prometheus::HistogramOpts::new(
