@@ -1,0 +1,23 @@
+[package]
+name = "persist-retry"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Unified retry and backoff logic for Persist storage adapters"
+
+[dependencies]
+async-trait = { workspace = true }
+backoff = { workspace = true }
+tokio = { workspace = true, optional = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }
+
+[features]
+default = []
+async-rt = ["dep:tokio"]
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
