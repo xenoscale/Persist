@@ -1,0 +1,85 @@
+   Compiling serde v1.0.219
+    Building [=>                        ] 15/175: serde                          Compiling num-traits v0.2.19
+    Building [=>                        ] 16/175: num-traits(build.rs)            Building [=>                        ] 18/175: num-traits(build)              Compiling smallvec v1.15.1
+    Building [==>                       ] 24/175: smallvec                        Building [===>                      ] 33/175: num-traits                     Compiling futures-core v0.3.31
+    Building [====>                     ] 37/175: futures-core                   Compiling parking_lot_core v0.9.11
+    Building [=====>                    ] 45/175: parking_lot_core               Compiling futures-sink v0.3.31
+    Building [======>                   ] 51/175: futures-sink                   Compiling serde_json v1.0.140
+    Building [======>                   ] 53/175: serde_json                     Compiling futures-channel v0.3.31
+    Building [=======>                  ] 54/175: futures-channel                Compiling parking_lot v0.12.4
+    Building [=======>                  ] 58/175: parking_lot                    Compiling futures-util v0.3.31
+    Building [=========>                ] 69/175: futures-util                   Compiling tokio v1.40.0
+    Building [============>             ] 90/175: tokio                          Compiling tracing v0.1.41
+    Building [============>             ] 94/175: tracing                        Compiling futures-executor v0.3.31
+    Building [=============>            ] 97/175: futures-executor               Compiling half v2.6.0
+    Building [=============>           ] 101/175: half                           Compiling ciborium-io v0.2.2
+    Building [=============>           ] 103/175: ciborium-io                    Compiling gimli v0.31.1
+    Building [==============>          ] 108/175: gimli                          Compiling predicates-core v1.0.9
+    Building [==============>          ] 109/175: predicates-core                Compiling plotters-backend v0.3.7
+    Building [==============>          ] 111/175: plotters-backend               Compiling plotters-svg v0.3.7
+    Building [===============>         ] 114/175: plotters-svg                   Compiling addr2line v0.24.2
+    Building [===============>         ] 116/175: addr2line                      Compiling clap_builder v4.5.41
+    Building [===============>         ] 117/175: clap_builder                   Compiling ciborium-ll v0.2.2
+    Building [================>        ] 119/175: ciborium-ll                    Compiling backoff v0.4.0
+    Building [================>        ] 120/175: backoff                        Compiling thiserror v1.0.69
+    Building [================>        ] 121/175: thiserror                      Compiling digest v0.10.7
+    Building [================>        ] 122/175: digest                         Compiling futures v0.3.31
+    Building [================>        ] 123/175: futures                        Compiling object v0.36.7
+    Building [=================>       ] 126/175: object                         Compiling getrandom v0.3.3
+    Building [=================>       ] 127/175: getrandom                      Compiling tracing-serde v0.2.0
+    Building [=================>       ] 130/175: tracing-serde                  Compiling float-cmp v0.9.0
+    Building [=================>       ] 131/175: float-cmp                      Compiling rustc-demangle v0.1.25
+    Building [==================>      ] 135/175: rustc-demangle                 Compiling cast v0.3.0
+    Building [==================>      ] 136/175: cast                           Compiling difflib v0.4.0
+    Building [==================>      ] 138/175: difflib                        Compiling same-file v1.0.6
+    Building [===================>     ] 140/175: same-file                      Compiling termtree v0.5.1
+    Building [===================>     ] 141/175: termtree                       Compiling normalize-line-endings v0.3.0
+    Building [===================>     ] 143/175: normalize-line-endings         Compiling predicates v2.1.5
+    Building [===================>     ] 144/175: predicates                     Compiling sha2 v0.10.9
+    Building [===================>     ] 145/175: sha2                           Compiling predicates-tree v1.0.12
+    Building [===================>     ] 146/175: predicates-tree                Compiling walkdir v2.5.0
+    Building [====================>    ] 147/175: walkdir                        Compiling tempfile v3.10.1
+    Building [====================>    ] 148/175: tempfile                       Compiling chrono v0.4.41
+    Building [====================>    ] 149/175: chrono                         Compiling criterion-plot v0.5.0
+    Building [====================>    ] 150/175: criterion-plot                 Compiling backtrace v0.3.75
+    Building [====================>    ] 151/175: backtrace                      Compiling tracing-subscriber v0.3.19
+    Building [====================>    ] 152/175: tracing-subscriber             Compiling flate2 v1.1.2
+    Building [====================>    ] 153/175: flate2                         Compiling persist-retry v0.1.0 (/workspace/persist-retry)
+    Building [=====================>   ] 154/175: persist-retry                  Compiling mockall_derive v0.11.4
+    Building [=====================>   ] 155/175: mockall_derive                 Compiling uuid v1.17.0
+    Building [=====================>   ] 156/175: uuid                           Compiling ciborium v0.2.2
+    Building [=====================>   ] 157/175: ciborium                       Compiling clap v4.5.41
+    Building [=====================>   ] 158/175: clap                           Compiling plotters v0.3.7
+    Building [=====================>   ] 159/175: plotters                       Compiling tinytemplate v1.2.1
+    Building [=====================>   ] 160/175: tinytemplate                   Compiling num_cpus v1.8.0
+    Building [======================>  ] 161/175: num_cpus                       Compiling is-terminal v0.4.16
+    Building [======================>  ] 162/175: is-terminal                    Compiling downcast v0.11.0
+    Building [======================>  ] 163/175: downcast                       Compiling mintex v0.1.4
+    Building [======================>  ] 164/175: mintex                         Compiling thousands v0.2.0
+    Building [======================>  ] 165/175: thousands                      Compiling rustc-hash v1.1.0
+    Building [======================>  ] 166/175: rustc-hash                     Compiling fragile v2.0.1
+    Building [======================>  ] 167/175: fragile                        Compiling anes v0.1.6
+    Building [=======================> ] 168/175: anes                           Compiling oorandom v11.1.5
+    Building [=======================> ] 169/175: oorandom                       Compiling criterion v0.5.1
+    Building [=======================> ] 170/175: criterion                      Compiling mockall v0.11.4
+    Building [=======================> ] 171/175: mockall                        Compiling dhat v0.3.3
+    Building [=======================> ] 172/175: dhat                           Compiling persist-core v0.1.0 (/workspace/persist-core)
+    Building [=======================> ] 173/175: persist-core                    Finished `test` profile [unoptimized + debuginfo] target(s) in 32.16s
+   Doc-tests persist_core
+
+running 12 tests
+test persist-core/src/compression.rs - compression::GzipCompressor (line 47) ... ok
+test persist-core/src/compression.rs - compression::GzipCompressor::with_level (line 78) ... ok
+test persist-core/src/lib.rs - (line 22) - compile ... ok
+test persist-core/src/metadata.rs - metadata::SnapshotMetadata::new (line 60) ... ok
+test persist-core/src/snapshot.rs - snapshot::SnapshotEngine (line 30) - compile ... ok
+test persist-core/src/snapshot.rs - snapshot::create_default_engine (line 270) ... ok
+test persist-core/src/snapshot.rs - snapshot::create_engine_from_config (line 366) - compile ... ok
+test persist-core/src/storage/local.rs - storage::local (line 27) - compile ... ok
+test persist-core/src/storage/local.rs - storage::local (line 33) - compile ... ok
+test persist-core/src/storage/local.rs - storage::local::LocalFileStorage (line 67) - compile ... ok
+test persist-core/src/storage/local.rs - storage::local::LocalFileStorage::with_base_dir (line 120) ... ok
+test persist-core/src/storage/local.rs - storage::local::LocalFileStorage::with_file_permissions (line 154) ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.23s
+
