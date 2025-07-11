@@ -10,22 +10,27 @@ __version__: str
 
 class PersistError(Exception):
     """Base exception for Persist operations."""
+
     pass
 
 class PersistConfigurationError(PersistError):
     """Raised when there's a configuration error."""
+
     pass
 
 class PersistIntegrityError(PersistError):
     """Raised when data integrity verification fails."""
+
     pass
 
 class PersistS3Error(PersistError):
     """Raised when S3 storage operations fail."""
+
     pass
 
 class PersistCompressionError(PersistError):
     """Raised when compression/decompression operations fail."""
+
     pass
 
 def snapshot(

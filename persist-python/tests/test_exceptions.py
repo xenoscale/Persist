@@ -9,6 +9,7 @@ import pytest
 # Try to import the persist module
 try:
     import persist
+
     PERSIST_AVAILABLE = True
 except ImportError:
     PERSIST_AVAILABLE = False
@@ -59,13 +60,17 @@ class TestErrorHandling:
             persist.snapshot(dummy_agent, "test.json.gz", storage_mode="invalid_mode")
 
         # Check that the error message indicates invalid storage mode
-        assert "Invalid storage_mode" in str(exc_info.value) or "invalid_mode" in str(exc_info.value)
+        assert "Invalid storage_mode" in str(exc_info.value) or "invalid_mode" in str(
+            exc_info.value
+        )
 
     def test_missing_s3_bucket_raises_error(self):
         """Test that missing S3 bucket parameter raises appropriate error."""
         dummy_agent = {"test": "data"}
 
-        with pytest.raises((persist.PersistS3Error, persist.PersistConfigurationError, ValueError)) as exc_info:
+        with pytest.raises(
+            (persist.PersistS3Error, persist.PersistConfigurationError, ValueError)
+        ) as exc_info:
             persist.snapshot(dummy_agent, "test.json.gz", storage_mode="s3")
 
         # Should raise an error about missing bucket configuration
@@ -78,7 +83,10 @@ class TestErrorHandling:
             persist.restore("/nonexistent/path/snapshot.json.gz")
 
         # Should be a file not found or IO error
-        assert "not found" in str(exc_info.value).lower() or "no such file" in str(exc_info.value).lower()
+        assert (
+            "not found" in str(exc_info.value).lower()
+            or "no such file" in str(exc_info.value).lower()
+        )
 
     def test_snapshot_exists_with_invalid_path(self):
         """Test that snapshot_exists returns False for invalid paths."""
@@ -98,17 +106,17 @@ class TestErrorHandling:
         """Test that invalid S3 credentials raise PersistS3Error."""
         dummy_agent = {"test": "data"}
 
-        with patch.dict('os.environ', {
-            'AWS_ACCESS_KEY_ID': 'invalid_key',
-            'AWS_SECRET_ACCESS_KEY': 'invalid_secret',
-            'AWS_REGION': 'us-west-2'
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "AWS_ACCESS_KEY_ID": "invalid_key",
+                "AWS_SECRET_ACCESS_KEY": "invalid_secret",
+                "AWS_REGION": "us-west-2",
+            },
+        ):
             with pytest.raises((persist.PersistS3Error, OSError, PermissionError)) as exc_info:
                 persist.snapshot(
-                    dummy_agent,
-                    "test.json.gz",
-                    storage_mode="s3",
-                    s3_bucket="test-bucket"
+                    dummy_agent, "test.json.gz", storage_mode="s3", s3_bucket="test-bucket"
                 )
 
             # Should be an S3-related error
@@ -129,8 +137,15 @@ class TestTypeHints:
         params = list(sig.parameters.keys())
 
         expected_params = [
-            'agent', 'path', 'agent_id', 'session_id', 'snapshot_index',
-            'description', 'storage_mode', 's3_bucket', 's3_region'
+            "agent",
+            "path",
+            "agent_id",
+            "session_id",
+            "snapshot_index",
+            "description",
+            "storage_mode",
+            "s3_bucket",
+            "s3_region",
         ]
 
         for param in expected_params:
@@ -140,20 +155,20 @@ class TestTypeHints:
         sig = inspect.signature(persist.restore)
         params = list(sig.parameters.keys())
 
-        expected_params = ['path', 'storage_mode', 's3_bucket', 's3_region']
+        expected_params = ["path", "storage_mode", "s3_bucket", "s3_region"]
 
         for param in expected_params:
             assert param in params, f"Expected parameter '{param}' not found in restore signature"
 
     def test_module_has_version(self):
         """Test that module exposes version information."""
-        assert hasattr(persist, '__version__')
+        assert hasattr(persist, "__version__")
         assert isinstance(persist.__version__, str)
         assert len(persist.__version__) > 0
 
     def test_module_has_docstring(self):
         """Test that module has proper documentation."""
-        assert hasattr(persist, '__doc__')
+        assert hasattr(persist, "__doc__")
         assert persist.__doc__ is not None
         assert len(persist.__doc__) > 0
 
@@ -169,13 +184,13 @@ class TestFunctionDefaults:
         sig = inspect.signature(persist.snapshot)
 
         # Check that defaults are set correctly
-        assert sig.parameters['agent_id'].default == "default_agent"
-        assert sig.parameters['session_id'].default == "default_session"
-        assert sig.parameters['snapshot_index'].default == 0
-        assert sig.parameters['description'].default is None
-        assert sig.parameters['storage_mode'].default is None
-        assert sig.parameters['s3_bucket'].default is None
-        assert sig.parameters['s3_region'].default is None
+        assert sig.parameters["agent_id"].default == "default_agent"
+        assert sig.parameters["session_id"].default == "default_session"
+        assert sig.parameters["snapshot_index"].default == 0
+        assert sig.parameters["description"].default is None
+        assert sig.parameters["storage_mode"].default is None
+        assert sig.parameters["s3_bucket"].default is None
+        assert sig.parameters["s3_region"].default is None
 
     @pytest.mark.xfail(reason="Expected to fail without LangChain - tests parameter validation")
     def test_optional_parameters_work(self):

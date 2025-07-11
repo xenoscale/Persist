@@ -413,17 +413,13 @@ pub fn create_engine_from_config(
             Ok(Box::new(engine))
         }
         #[cfg(not(feature = "s3"))]
-        StorageBackend::S3 => {
-            Err(PersistError::validation(
-                "S3 storage backend is not available. Enable the 's3' feature to use S3 storage."
-            ))
-        }
+        StorageBackend::S3 => Err(PersistError::validation(
+            "S3 storage backend is not available. Enable the 's3' feature to use S3 storage.",
+        )),
         #[cfg(not(feature = "gcs"))]
-        StorageBackend::GCS => {
-            Err(PersistError::validation(
-                "GCS storage backend is not available. Enable the 'gcs' feature to use GCS storage."
-            ))
-        }
+        StorageBackend::GCS => Err(PersistError::validation(
+            "GCS storage backend is not available. Enable the 'gcs' feature to use GCS storage.",
+        )),
     }
 }
 
