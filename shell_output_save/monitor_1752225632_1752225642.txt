@@ -1,353 +1,0 @@
-🔍 Linting Rust code...
-    Checking smallvec v1.15.1
-    Building [                          ] 11/455: smallvec                        Checking parking_lot_core v0.9.11
-    Building [>                         ] 22/455: parking_lot_core               Compiling libc v0.2.174
-    Building [>                         ] 23/455: libc                            Checking futures-core v0.3.31
-    Building [>                         ] 24/455: futures-core                   Compiling jobserver v0.1.33
-    Building [>                         ] 25/455: jobserver                       Checking parking_lot v0.12.4
-    Building [>                         ] 26/455: parking_lot                    Compiling cc v1.2.29
-    Building [>                         ] 28/455: cc                              Checking tokio v1.40.0
-    Building [>                         ] 34/455: tokio                           Checking futures-sink v0.3.31
-    Building [=>                        ] 35/455: futures-sink                    Checking fnv v1.0.7
-    Building [=>                        ] 36/455: fnv                             Checking zeroize v1.8.1
-    Building [=>                        ] 41/455: zeroize                         Checking serde v1.0.219
-    Building [=>                        ] 42/455: serde                           Checking futures-channel v0.3.31
-    Building [=>                        ] 44/455: futures-channel                 Checking futures-util v0.3.31
-    Building [=>                        ] 48/455: futures-util                    Checking http v1.3.1
-    Building [==>                       ] 54/455: http                            Checking tokio-util v0.7.15
-    Building [==>                       ] 55/455: tokio-util                      Checking tracing v0.1.41
-    Building [==>                       ] 57/455: tracing                         Checking num-traits v0.2.19
-    Building [==>                       ] 58/455: num-traits                      Checking http-body v1.0.1
-    Building [==>                       ] 60/455: http-body                       Checking subtle v2.6.1
-    Building [==>                       ] 61/455: subtle                          Checking http-body-util v0.1.3
-    Building [==>                       ] 64/455: http-body-util                 Compiling num-conv v0.1.0
-    Building [==>                       ] 66/455: num-conv                        Checking either v1.15.0
-    Building [==>                       ] 67/455: either                          Checking powerfmt v0.2.0
-    Building [==>                       ] 68/455: powerfmt                       Compiling time-core v0.1.4
-    Building [==>                       ] 69/455: time-core                      Compiling time-macros v0.2.22
-    Building [===>                      ] 70/455: time-macros                     Checking deranged v0.4.0
-    Building [===>                      ] 71/455: deranged                        Checking num-integer v0.1.46
-    Building [===>                      ] 74/455: num-integer                     Building [===>                      ] 75/455: time-core                       Checking foldhash v0.1.5
-    Building [===>                      ] 76/455: foldhash                        Checking allocator-api2 v0.2.21
-    Building [===>                      ] 77/455: allocator-api2                  Building [===>                      ] 78/455: num-conv                        Checking equivalent v1.0.2
-    Building [===>                      ] 79/455: equivalent                      Checking hashbrown v0.15.4
-    Building [===>                      ] 80/455: hashbrown                       Checking time v0.3.41
-    Building [===>                      ] 81/455: time                            Checking http v0.2.12
-    Building [===>                      ] 84/455: http                            Checking percent-encoding v2.3.1
-    Building [===>                      ] 85/455: percent-encoding                Checking untrusted v0.9.0
-    Building [===>                      ] 86/455: untrusted                       Checking indexmap v2.10.0
-    Building [====>                     ] 88/455: indexmap                        Checking zerofrom v0.1.6
-    Building [====>                     ] 92/455: zerofrom                        Checking http-body v0.4.6
-    Building [====>                     ] 93/455: http-body                      Compiling ring v0.17.14
-    Building [====>                     ] 96/455: ring(build.rs)                  Checking openssl-probe v0.1.6
-    Building [====>                     ] 97/455: openssl-probe                   Checking tower-service v0.3.3
-    Building [====>                     ] 98/455: tower-service                   Checking stable_deref_trait v1.2.0
-    Building [====>                     ] 99/455: stable_deref_trait              Checking try-lock v0.2.5
-    Building [====>                    ] 100/455: try-lock                        Checking want v0.3.1
-    Building [====>                    ] 101/455: want                            Checking yoke v0.8.0
-    Building [====>                    ] 102/455: yoke                            Building [====>                    ] 103/455: ring(build)                     Checking httparse v1.10.1
-    Building [====>                    ] 104/455: httparse                        Checking vsimd v0.8.0
-    Building [====>                    ] 107/455: vsimd                           Checking outref v0.5.2
-    Building [====>                    ] 108/455: outref                          Checking base64-simd v0.8.0
-    Building [====>                    ] 109/455: base64-simd                     Checking digest v0.10.7
-    Building [=====>                   ] 110/455: digest                          Checking bytes-utils v0.1.4
-    Building [=====>                   ] 111/455: bytes-utils                     Checking rustls-pki-types v1.12.0
-    Building [=====>                   ] 112/455: rustls-pki-types                Checking base64 v0.22.1
-    Building [=====>                   ] 114/455: base64                          Checking atomic-waker v1.1.2
-    Building [=====>                   ] 115/455: atomic-waker                    Checking h2 v0.4.11
-    Building [=====>                   ] 116/455: h2                              Checking zerovec v0.11.2
-    Building [=====>                   ] 117/455: zerovec                         Checking aws-smithy-types v1.3.2
-    Building [=====>                   ] 118/455: aws-smithy-types                Building [=====>                   ] 119/455: ring                           Compiling cmake v0.1.54
-    Building [=====>                   ] 120/455: cmake                           Checking base64ct v1.8.0
-    Building [=====>                   ] 122/455: base64ct                        Checking const-oid v0.9.6
-    Building [=====>                   ] 125/455: const-oid                      Compiling aws-lc-sys v0.29.0
-    Building [=====>                   ] 126/455: aws-lc-sys(build.rs)            Checking hyper v1.6.0
-    Building [=====>                   ] 127/455: hyper                           Checking ipnet v2.11.0
-    Building [======>                  ] 128/455: ipnet                           Checking hyper-util v0.1.15
-    Building [======>                  ] 129/455: hyper-util                      Building [======>                  ] 130/455: aws-lc-sys(build)               Checking sync_wrapper v1.0.2
-    Building [======>                  ] 131/455: sync_wrapper                    Checking tower-layer v0.3.3
-    Building [======>                  ] 132/455: tower-layer                     Checking tower v0.5.2
-    Building [======>                  ] 133/455: tower                           Checking tinystr v0.8.1
-    Building [======>                  ] 134/455: tinystr                         Checking form_urlencoded v1.2.1
-    Building [======>                  ] 135/455: form_urlencoded                 Checking aws-smithy-async v1.2.5
-    Building [======>                  ] 136/455: aws-smithy-async                Checking litemap v0.8.0
-    Building [======>                  ] 138/455: litemap                         Checking writeable v0.6.1
-    Building [======>                  ] 139/455: writeable                      Compiling aws-lc-rs v1.13.1
-    Building [======>                  ] 142/455: aws-lc-rs(build)               Compiling openssl-sys v0.9.109
-    Building [======>                  ] 143/455: openssl-sys(build.rs)           Checking icu_locale_core v2.0.0
-    Building [======>                  ] 144/455: icu_locale_core                 Checking aws-smithy-runtime-api v1.8.3
-    Building [======>                  ] 145/455: aws-smithy-runtime-api          Checking zerotrie v0.2.2
-    Building [=======>                 ] 146/455: zerotrie                        Checking potential_utf v0.1.2
-    Building [=======>                 ] 147/455: potential_utf                   Checking base64 v0.21.7
-    Building [=======>                 ] 148/455: base64                          Checking icu_collections v2.0.0
-    Building [=======>                 ] 155/455: icu_collections                 Checking icu_provider v2.0.0
-    Building [=======>                 ] 156/455: icu_provider                    Building [=======>                 ] 157/455: openssl-sys(build)              Building [=======>                 ] 158/455: aws-lc-sys                      Checking der v0.6.1
-    Building [=======>                 ] 159/455: der                             Checking spki v0.6.0
-    Building [========>                ] 165/455: spki                            Building [========>                ] 166/455: aws-lc-rs                       Checking icu_normalizer_data v2.0.0
-    Building [========>                ] 167/455: icu_normalizer_data             Checking icu_properties_data v2.0.1
-    Building [========>                ] 168/455: icu_properties_data             Checking getrandom v0.3.3
-    Building [========>                ] 169/455: getrandom                      Compiling rustls v0.23.29
-    Building [========>                ] 177/455: rustls(build)                  Compiling rustls v0.21.12
-    Building [========>                ] 178/455: rustls(build)                   Checking icu_properties v2.0.1
-    Building [========>                ] 180/455: icu_properties                  Checking icu_normalizer v2.0.0
-    Building [========>                ] 181/455: icu_normalizer                  Checking rustls-webpki v0.103.4
-    Building [=========>               ] 182/455: rustls-webpki                   Checking pkcs8 v0.9.0
-    Building [=========>               ] 183/455: pkcs8                           Checking serde_json v1.0.140
-    Building [=========>               ] 185/455: serde_json                      Checking sct v0.7.1
-    Building [=========>               ] 186/455: sct                             Checking rustls-webpki v0.101.7
-    Building [=========>               ] 187/455: rustls-webpki                   Checking crypto-bigint v0.4.9
-    Building [=========>               ] 188/455: crypto-bigint                   Checking ff v0.12.1
-    Building [=========>               ] 189/455: ff                              Checking base16ct v0.1.1
-    Building [=========>               ] 191/455: base16ct                        Checking foreign-types-shared v0.1.1
-    Building [=========>               ] 193/455: foreign-types-shared           Compiling openssl v0.10.73
-    Building [=========>               ] 195/455: openssl(build)                  Checking foreign-types v0.3.2
-    Building [=========>               ] 196/455: foreign-types                   Checking sec1 v0.3.0
-    Building [=========>               ] 198/455: sec1                            Checking thiserror v1.0.69
-    Building [=========>               ] 199/455: thiserror                       Checking group v0.12.1
-    Building [=========>               ] 200/455: group                           Building [==========>              ] 201/455: rustls                          Building [==========>              ] 203/455: rustls                          Checking idna_adapter v1.2.1
-    Building [==========>              ] 204/455: idna_adapter                    Checking sha2 v0.10.9
-    Building [==========>              ] 206/455: sha2                            Checking aws-smithy-eventstream v0.60.9
-    Building [==========>              ] 207/455: aws-smithy-eventstream          Building [==========>              ] 208/455: openssl-sys                     Checking rustls-pemfile v1.0.4
-    Building [==========>              ] 209/455: rustls-pemfile                  Checking hmac v0.12.1
-    Building [==========>              ] 210/455: hmac                            Checking h2 v0.3.26
-    Building [==========>              ] 211/455: h2                              Checking aho-corasick v1.1.3
-    Building [==========>              ] 212/455: aho-corasick                    Checking httpdate v1.0.3
-    Building [==========>              ] 214/455: httpdate                        Checking utf8_iter v1.0.4
-    Building [==========>              ] 215/455: utf8_iter                       Checking regex-syntax v0.8.5
-    Building [==========>              ] 216/455: regex-syntax                   Compiling native-tls v0.2.14
-    Building [==========>              ] 218/455: native-tls(build)               Checking regex-automata v0.4.9
-    Building [===========>             ] 219/455: regex-automata                  Checking idna v1.0.3
-    Building [===========>             ] 220/455: idna                            Checking hyper v0.14.32
-    Building [===========>             ] 221/455: hyper                           Building [===========>             ] 222/455: openssl                         Checking rfc6979 v0.3.1
-    Building [===========>             ] 223/455: rfc6979                         Checking rustls-native-certs v0.6.3
-    Building [===========>             ] 224/455: rustls-native-certs             Checking aws-smithy-http v0.62.1
-    Building [===========>             ] 225/455: aws-smithy-http                 Checking tokio-rustls v0.26.2
-    Building [===========>             ] 227/455: tokio-rustls                    Checking tokio-rustls v0.24.1
-    Building [===========>             ] 228/455: tokio-rustls                    Checking elliptic-curve v0.12.3
-    Building [===========>             ] 229/455: elliptic-curve                  Checking rustls-native-certs v0.8.1
-    Building [===========>             ] 231/455: rustls-native-certs             Checking signature v1.6.4
-    Building [===========>             ] 232/455: signature                      Compiling unicase v2.8.1
-    Building [===========>             ] 233/455: unicase                         Checking hex v0.4.3
-    Building [===========>             ] 234/455: hex                            Compiling mime_guess v2.0.5
-    Building [===========>             ] 235/455: mime_guess(build.rs)            Checking ecdsa v0.14.8
-    Building [===========>             ] 236/455: ecdsa                           Checking hyper-rustls v0.27.7
-    Building [============>            ] 237/455: hyper-rustls                    Checking hyper-rustls v0.24.2
-    Building [============>            ] 239/455: hyper-rustls                    Building [============>            ] 241/455: native-tls                      Checking url v2.5.4
-    Building [============>            ] 242/455: url                             Checking regex v1.11.1
-    Building [============>            ] 243/455: regex                           Checking aws-credential-types v1.2.3
-    Building [============>            ] 244/455: aws-credential-types            Checking tokio-native-tls v0.3.1
-    Building [============>            ] 248/455: tokio-native-tls                Checking aws-smithy-http-client v1.0.6
-    Building [============>            ] 250/455: aws-smithy-http-client          Checking p256 v0.11.1
-    Building [============>            ] 252/455: p256                            Building [============>            ] 253/455: mime_guess(build)               Checking aws-smithy-observability v0.1.3
-    Building [============>            ] 254/455: aws-smithy-observability        Checking crypto-bigint v0.5.5
-    Building [=============>           ] 255/455: crypto-bigint                   Checking mime v0.3.17
-    Building [=============>           ] 258/455: mime                           Compiling once_cell v1.18.0
-    Building [=============>           ] 259/455: once_cell                       Checking iri-string v0.7.8
-    Building [=============>           ] 261/455: iri-string                      Building [=============>           ] 262/455: unicase                         Building [=============>           ] 263/455: mime_guess                      Checking tower-http v0.6.6
-    Building [=============>           ] 264/455: tower-http                     Compiling pyo3-build-config v0.25.1
-    Building [=============>           ] 266/455: pyo3-build-config               Checking thiserror v2.0.12
-    Building [=============>           ] 267/455: thiserror                       Checking aws-sigv4 v1.3.3
-    Building [=============>           ] 268/455: aws-sigv4                       Checking aws-smithy-runtime v1.8.4
-    Building [=============>           ] 269/455: aws-smithy-runtime              Checking aws-types v1.3.7
-    Building [=============>           ] 270/455: aws-types                       Checking hyper-tls v0.6.0
-    Building [=============>           ] 271/455: hyper-tls                       Checking uuid v1.17.0
-    Building [=============>           ] 272/455: uuid                            Checking serde_urlencoded v0.7.1
-    Building [==============>          ] 273/455: serde_urlencoded                Checking encoding_rs v0.8.35
-    Building [==============>          ] 274/455: encoding_rs                     Checking urlencoding v2.1.3
-    Building [==============>          ] 275/455: urlencoding                     Checking reqwest v0.12.22
-    Building [==============>          ] 276/455: reqwest                         Checking aws-runtime v1.5.8
-    Building [==============>          ] 277/455: aws-runtime                     Checking rand_core v0.9.3
-    Building [==============>          ] 279/455: rand_core                       Checking aws-smithy-json v0.61.4
-    Building [==============>          ] 280/455: aws-smithy-json                 Checking num-bigint v0.4.6
-    Building [==============>          ] 281/455: num-bigint                      Checking regex-lite v0.1.6
-    Building [==============>          ] 282/455: regex-lite                      Checking simple_asn1 v0.6.3
-    Building [==============>          ] 285/455: simple_asn1                     Checking rand_chacha v0.9.0
-    Building [==============>          ] 286/455: rand_chacha                     Checking pem-rfc7468 v0.7.0
-    Building [==============>          ] 289/455: pem-rfc7468                     Checking pem v3.0.5
-    Building [==============>          ] 290/455: pem                             Checking xmlparser v0.13.6
-    Building [===============>         ] 292/455: xmlparser                       Checking crc-catalog v2.4.0
-    Building [===============>         ] 296/455: crc-catalog                     Checking crc v3.3.0
-    Building [===============>         ] 297/455: crc                             Checking aws-smithy-xml v0.60.10
-    Building [===============>         ] 301/455: aws-smithy-xml                  Checking jsonwebtoken v9.3.1
-    Building [===============>         ] 303/455: jsonwebtoken                    Checking der v0.7.10
-    Building [===============>         ] 304/455: der                             Checking rand v0.9.1
-    Building [===============>         ] 307/455: rand                            Checking google-cloud-metadata v0.5.1
-    Building [===============>         ] 308/455: google-cloud-metadata           Checking google-cloud-token v0.1.2
-    Building [===============>         ] 309/455: google-cloud-token              Checking futures-executor v0.3.31
-    Building [================>        ] 310/455: futures-executor                Checking home v0.5.11
-    Building [================>        ] 313/455: home                            Checking backoff v0.4.0
-    Building [================>        ] 319/455: backoff                         Checking futures v0.3.31
-    Building [================>        ] 320/455: futures                         Checking crc-fast v1.3.0
-    Building [================>        ] 321/455: crc-fast                        Checking spki v0.7.3
-    Building [================>        ] 323/455: spki                            Checking anyhow v1.0.98
-    Building [================>        ] 325/455: anyhow                          Checking aws-smithy-query v0.60.7
-    Building [================>        ] 326/455: aws-smithy-query                Checking protobuf-support v3.7.2
-    Building [================>        ] 327/455: protobuf-support                Checking sha1 v0.10.6
-    Building [=================>       ] 328/455: sha1                            Checking md-5 v0.10.6
-    Building [=================>       ] 329/455: md-5                            Checking utf8parse v0.2.2
-    Building [=================>       ] 333/455: utf8parse                       Checking anstyle-parse v0.2.7
-    Building [=================>       ] 336/455: anstyle-parse                   Checking async-stream v0.3.6
-    Building [=================>       ] 339/455: async-stream                    Checking aws-smithy-checksums v0.63.4
-    Building [=================>       ] 340/455: aws-smithy-checksums            Checking protobuf v3.7.2
-    Building [=================>       ] 341/455: protobuf                        Checking aws-sdk-sts v1.76.0
-    Building [=================>       ] 342/455: aws-sdk-sts                     Checking reqwest-middleware v0.4.2
-    Building [=================>       ] 343/455: reqwest-middleware              Checking pkcs8 v0.10.2
-    Building [=================>       ] 344/455: pkcs8                           Checking rayon v1.10.0
-    Building [=================>       ] 345/455: rayon                           Checking google-cloud-auth v0.17.2
-    Building [==================>      ] 347/455: google-cloud-auth               Checking aws-sdk-sso v1.74.0
-    Building [==================>      ] 349/455: aws-sdk-sso                     Checking aws-sdk-ssooidc v1.75.0
-    Building [==================>      ] 350/455: aws-sdk-ssooidc                 Checking lru v0.12.5
-    Building [==================>      ] 352/455: lru                             Checking tracing-serde v0.2.0
-    Building [==================>      ] 353/455: tracing-serde                   Checking anstyle-query v1.1.3
-    Building [==================>      ] 355/455: anstyle-query                   Checking is_terminal_polyfill v1.70.1
-    Building [==================>      ] 356/455: is_terminal_polyfill            Checking anstyle v1.0.11
-    Building [==================>      ] 358/455: anstyle                         Checking colorchoice v1.0.4
-    Building [==================>      ] 359/455: colorchoice                     Checking anstream v0.6.19
-    Building [==================>      ] 360/455: anstream                        Checking chrono v0.4.41
-    Building [==================>      ] 361/455: chrono                          Checking tracing-subscriber v0.3.19
-    Building [==================>      ] 362/455: tracing-subscriber              Checking aws-sdk-s3 v1.96.0
-    Building [==================>      ] 363/455: aws-sdk-s3                      Checking aws-config v1.8.1
-    Building [===================>     ] 364/455: aws-config                      Checking google-cloud-storage v0.24.0
-    Building [===================>     ] 365/455: google-cloud-storage            Checking prometheus v0.14.0
-    Building [===================>     ] 366/455: prometheus                      Checking persist-retry v0.1.0 (/workspace/persist-retry)
-    Building [===================>     ] 368/455: persist-retry                   Checking google-cloud-auth v0.16.0
-    Building [===================>     ] 369/455: google-cloud-auth               Checking strsim v0.11.1
-    Building [===================>     ] 372/455: strsim                          Checking clap_lex v0.7.5
-    Building [===================>     ] 373/455: clap_lex                        Checking clap_builder v4.5.41
-    Building [===================>     ] 374/455: clap_builder                   Compiling clap_derive v4.5.41
-    Building [===================>     ] 375/455: clap_derive                     Checking itertools v0.10.5
-    Building [===================>     ] 376/455: itertools                       Checking clap v4.5.41
-    Building [===================>     ] 381/455: clap                            Checking persist-core v0.1.0 (/workspace/persist-core)
-    Building [===================>     ] 382/455: persist-core                   Compiling pyo3-ffi v0.25.1
-    Building [====================>    ] 383/455: pyo3-ffi(build.rs)             Compiling pyo3-macros-backend v0.25.1
-    Building [====================>    ] 384/455: pyo3-macros-backend(build...    Checking half v2.6.0
-    Building [====================>    ] 386/455: half                            Checking gimli v0.31.1
-    Building [====================>    ] 387/455: gimli                           Checking predicates-core v1.0.9
-    Building [====================>    ] 388/455: predicates-core                 Checking ciborium-io v0.2.2
-    Building [====================>    ] 389/455: ciborium-io                     Checking plotters-backend v0.3.7
-    Building [====================>    ] 390/455: plotters-backend                Checking plotters-svg v0.3.7
-    Building [====================>    ] 391/455: plotters-svg                    Checking ciborium-ll v0.2.2
-    Building [====================>    ] 392/455: ciborium-ll                     Checking addr2line v0.24.2
-    Building [====================>    ] 393/455: addr2line                      Compiling proc-macro-error v1.0.4
-    Building [====================>    ] 394/455: proc-macro-error(build)         Building [====================>    ] 395/455: pyo3-macros-backend(build)      Building [====================>    ] 396/455: pyo3-ffi(build)                Compiling proc-macro-error-attr v1.0.4
-    Building [====================>    ] 397/455: proc-macro-error-attr           Checking object v0.36.7
-    Building [====================>    ] 398/455: object                          Checking float-cmp v0.9.0
-    Building [====================>    ] 399/455: float-cmp                      Compiling memoffset v0.9.1
-    Building [====================>    ] 400/455: memoffset(build.rs)             Checking termtree v0.5.1
-    Building [=====================>   ] 401/455: termtree                       Compiling cfg-if v1.0.1
-    Building [=====================>   ] 402/455: cfg-if                          Checking difflib v0.4.0
-    Building [=====================>   ] 403/455: difflib                         Checking normalize-line-endings v0.3.0
-    Building [=====================>   ] 404/455: normalize-line-endings          Checking cast v0.3.0
-    Building [=====================>   ] 405/455: cast                            Checking rustc-demangle v0.1.25
-    Building [=====================>   ] 406/455: rustc-demangle                  Checking same-file v1.0.6
-    Building [=====================>   ] 407/455: same-file                       Checking walkdir v2.5.0
-    Building [=====================>   ] 408/455: walkdir                         Checking backtrace v0.3.75
-    Building [=====================>   ] 409/455: backtrace                       Checking criterion-plot v0.5.0
-    Building [=====================>   ] 410/455: criterion-plot                  Checking predicates v2.1.5
-    Building [=====================>   ] 411/455: predicates                     Compiling mockall_derive v0.11.4
-    Building [=====================>   ] 412/455: mockall_derive                  Checking predicates-tree v1.0.12
-    Building [=====================>   ] 413/455: predicates-tree                 Building [=====================>   ] 414/455: memoffset(build)                Building [=====================>   ] 415/455: proc-macro-error                Building [=====================>   ] 416/455: pyo3-macros-backend             Checking ciborium v0.2.2
-    Building [=====================>   ] 417/455: ciborium                        Checking plotters v0.3.7
-    Building [=====================>   ] 418/455: plotters                       Compiling pyo3 v0.25.1
-    Building [======================>  ] 419/455: pyo3(build.rs)                  Checking tinytemplate v1.2.1
-    Building [======================>  ] 420/455: tinytemplate                    Checking is-terminal v0.4.16
-    Building [======================>  ] 421/455: is-terminal                     Checking thousands v0.2.0
-    Building [======================>  ] 422/455: thousands                       Checking downcast v0.11.0
-    Building [======================>  ] 423/455: downcast                        Checking unicode-width v0.1.14
-    Building [======================>  ] 424/455: unicode-width                   Checking bytecount v0.6.9
-    Building [======================>  ] 425/455: bytecount                       Checking oorandom v11.1.5
-    Building [======================>  ] 426/455: oorandom                        Checking mintex v0.1.4
-    Building [======================>  ] 427/455: mintex                          Checking fragile v2.0.1
-    Building [======================>  ] 428/455: fragile                        Compiling heck v0.4.1
-    Building [======================>  ] 429/455: heck                            Checking rustc-hash v1.1.0
-    Building [======================>  ] 430/455: rustc-hash                      Checking anes v0.1.6
-    Building [======================>  ] 431/455: anes                            Checking criterion v0.5.1
-    Building [======================>  ] 432/455: criterion                       Checking dhat v0.3.3
-    Building [======================>  ] 433/455: dhat                           Compiling tabled_derive v0.7.0
-    Building [======================>  ] 434/455: tabled_derive                   Checking mockall v0.11.4
-    Building [======================>  ] 435/455: mockall                         Checking papergrid v0.11.0
-    Building [======================>  ] 436/455: papergrid                       Building [=======================> ] 437/455: pyo3(build)                    Compiling pyo3-macros v0.25.1
-    Building [=======================> ] 438/455: pyo3-macros                     Building [=======================> ] 439/455: memoffset                       Building [=======================> ] 440/455: pyo3-ffi                       Compiling persist-python v0.1.0 (/workspace/persist-python)
-    Building [=======================> ] 441/455: persist-python(build.rs)        Checking unindent v0.2.4
-    Building [=======================> ] 442/455: unindent                       Compiling indoc v2.0.6
-    Building [=======================> ] 443/455: indoc                           Building [=======================> ] 444/455: pyo3                            Building [=======================> ] 445/455: persist-python(build)           Checking tabled v0.15.0
-    Building [=======================> ] 446/455: tabled                          Checking persist-cli v0.1.0 (/workspace/persist-cli)
-    Building [=======================> ] 447/455: persist(bin test)               Building [=======================> ] 448/455: persist(bin)                    Building [=======================> ] 449/455: persist(test)                   Building [=======================> ] 450/455: persist-python                  Building [=======================> ] 451/455: simple_benchmark(example)       Building [=======================> ] 452/455: persist_core(test)              Building [=======================> ] 453/455: snapshot_benchmarks(bench)      Building [=======================> ] 454/455: persist_retry(test)             Finished `dev` profile [unoptimized + debuginfo] target(s) in 2m 07s
-🐍 Linting Python code...
-⚠️  ruff not found, skipping Python linting
-   Install with: pip install ruff
-tests/test_python_sdk.py:33: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:45: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:45: note: Use "-> None" if function does not return a value
-tests/test_python_sdk.py:68: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:75: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:92: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:96: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:100: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:104: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:115: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:120: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:123: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:127: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:152: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:156: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:166: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:166: note: Use "-> None" if function does not return a value
-tests/test_python_sdk.py:173: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:177: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:192: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:202: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:226: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:243: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:258: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:261: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:265: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:285: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:306: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:310: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:319: error: Argument 2 to "snapshot" has incompatible type "Path"; expected "str"  [arg-type]
-tests/test_python_sdk.py:324: error: Argument 1 to "restore" has incompatible type "Path"; expected "str"  [arg-type]
-tests/test_python_sdk.py:327: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:331: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:334: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:357: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:361: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:374: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:398: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:401: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_python_sdk.py:464: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:475: error: Function is missing a type annotation  [no-untyped-def]
-tests/test_python_sdk.py:478: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:23: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:23: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:34: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:34: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:55: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:55: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:67: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:67: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:80: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:80: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:91: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:91: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:98: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:98: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:105: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:105: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:131: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:131: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:163: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:163: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:169: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:169: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:180: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:180: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:196: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:196: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:217: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:217: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:226: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:226: note: Use "-> None" if function does not return a value
-tests/test_exceptions.py:235: error: Function is missing a return type annotation  [no-untyped-def]
-tests/test_exceptions.py:235: note: Use "-> None" if function does not return a value
-Found 56 errors in 2 files (checked 3 source files)
