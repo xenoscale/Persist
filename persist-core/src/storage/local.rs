@@ -32,6 +32,7 @@ let storage = LocalFileStorage::new();
 
 ## Secure Configuration with Base Directory
 ```rust,no_run
+use persist_core::storage::LocalFileStorage;
 let storage = LocalFileStorage::with_base_dir("/var/persist/snapshots")
     .with_durable_writes(true)
     .with_file_permissions(0o600);
@@ -64,7 +65,7 @@ use tracing::{debug, info, warn};
 ///
 /// # Example
 /// ```rust,no_run
-/// use persist_core::storage::LocalFileStorage;
+/// use persist_core::storage::{LocalFileStorage, StorageAdapter};
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let storage = LocalFileStorage::with_base_dir("/var/persist/snapshots")

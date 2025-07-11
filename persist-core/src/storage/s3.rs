@@ -24,11 +24,18 @@ Includes comprehensive error handling, retry logic, memory optimization, and fle
 ## Basic Configuration
 ```rust,no_run
 use persist_core::storage::s3::S3StorageAdapter;
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 let adapter = S3StorageAdapter::new("my-bucket".to_string())?;
+# Ok(())
+# }
 ```
 
 ## Advanced Configuration with Builder
 ```rust,no_run
+use persist_core::storage::s3::S3StorageAdapter;
+
+# fn main() -> Result<(), Box<dyn std::error::Error>> {
 let adapter = S3StorageAdapter::builder()
     .bucket("my-bucket")
     .endpoint("http://localhost:4566") // For LocalStack/MinIO
@@ -36,6 +43,8 @@ let adapter = S3StorageAdapter::builder()
     .max_retries(5)
     .timeout(std::time::Duration::from_secs(30))
     .build()?;
+# Ok(())
+# }
 ```
 */
 
