@@ -17,11 +17,11 @@ use async_trait::async_trait;
 use futures::io::AsyncRead;
 
 #[cfg(feature = "async-rt")]
-use tokio::runtime::Runtime;
-#[cfg(feature = "async-rt")]
 use once_cell::sync::Lazy;
 #[cfg(feature = "async-rt")]
 use std::sync::Arc;
+#[cfg(feature = "async-rt")]
+use tokio::runtime::Runtime;
 
 #[cfg(feature = "async-rt")]
 static GLOBAL_RT: Lazy<Runtime> = Lazy::new(|| {
