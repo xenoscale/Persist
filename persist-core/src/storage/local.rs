@@ -249,15 +249,15 @@ impl LocalFileStorage {
     fn validate_path_security(&self, path: &str) -> Result<()> {
         // Normalize path separators to forward slashes for consistent checking
         let normalized_path = path.replace('\\', "/");
-        
+
         // Check for various path traversal patterns
         let dangerous_patterns = [
-            "../",      // Parent directory traversal
-            "/../../",  // Multiple parent directory traversal
-            "/..",      // Parent directory at end of path component
-            "..",       // Parent directory as standalone component
+            "../",     // Parent directory traversal
+            "/../../", // Multiple parent directory traversal
+            "/..",     // Parent directory at end of path component
+            "..",      // Parent directory as standalone component
         ];
-        
+
         for pattern in &dangerous_patterns {
             if normalized_path.contains(pattern) {
                 return Err(PersistError::validation(format!(
@@ -266,7 +266,7 @@ impl LocalFileStorage {
                 )));
             }
         }
-        
+
         // Additional check: split by '/' and look for ".." components
         let components: Vec<&str> = normalized_path.split('/').collect();
         for component in components {
@@ -277,7 +277,7 @@ impl LocalFileStorage {
                 )));
             }
         }
-        
+
         // Check for absolute paths (should be relative to base_dir)
         if normalized_path.starts_with('/') {
             return Err(PersistError::validation(format!(
@@ -285,7 +285,7 @@ impl LocalFileStorage {
                 path
             )));
         }
-        
+
         Ok(())
     }
 
