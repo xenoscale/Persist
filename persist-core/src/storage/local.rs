@@ -166,6 +166,11 @@ impl LocalFileStorage {
     /// This method performs security validation to prevent path traversal attacks
     /// when a base directory is configured.
     fn resolve_path(&self, path: &str) -> Result<PathBuf> {
+        // Early validation: check for path traversal patterns
+        if let Some(_) = &self.base_dir {
+            self.validate_path_security(path)?;
+        }
+
         let initial_path = match &self.base_dir {
             Some(base) => base.join(path),
             None => PathBuf::from(path),
@@ -238,6 +243,50 @@ impl LocalFileStorage {
         } else {
             Ok(initial_path)
         }
+    }
+
+    /// Validate path for security issues (path traversal attempts)
+    fn validate_path_security(&self, path: &str) -> Result<()> {
+        // Normalize path separators to forward slashes for consistent checking
+        let normalized_path = path.replace('\\', "/");
+        
+        // Check for various path traversal patterns
+        let dangerous_patterns = [
+            "../",      // Parent directory traversal
+            "/../../",  // Multiple parent directory traversal
+            "/..",      // Parent directory at end of path component
+            "..",       // Parent directory as standalone component
+        ];
+        
+        for pattern in &dangerous_patterns {
+            if normalized_path.contains(pattern) {
+                return Err(PersistError::validation(format!(
+                    "Path '{}' contains dangerous traversal pattern '{}' and is not allowed",
+                    path, pattern
+                )));
+            }
+        }
+        
+        // Additional check: split by '/' and look for ".." components
+        let components: Vec<&str> = normalized_path.split('/').collect();
+        for component in components {
+            if component == ".." {
+                return Err(PersistError::validation(format!(
+                    "Path '{}' contains parent directory reference '..' and is not allowed",
+                    path
+                )));
+            }
+        }
+        
+        // Check for absolute paths (should be relative to base_dir)
+        if normalized_path.starts_with('/') {
+            return Err(PersistError::validation(format!(
+                "Absolute paths are not allowed: '{}'",
+                path
+            )));
+        }
+        
+        Ok(())
     }
 
     /// Ensure the parent directory exists, creating it if necessary
