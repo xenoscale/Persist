@@ -167,7 +167,7 @@ impl LocalFileStorage {
     /// when a base directory is configured.
     fn resolve_path(&self, path: &str) -> Result<PathBuf> {
         // Early validation: check for path traversal patterns
-        if let Some(_) = &self.base_dir {
+        if self.base_dir.is_some() {
             self.validate_path_security(path)?;
         }
 
@@ -261,8 +261,7 @@ impl LocalFileStorage {
         for pattern in &dangerous_patterns {
             if normalized_path.contains(pattern) {
                 return Err(PersistError::validation(format!(
-                    "Path '{}' contains dangerous traversal pattern '{}' and is not allowed",
-                    path, pattern
+                    "Path '{path}' contains dangerous traversal pattern '{pattern}' and is not allowed"
                 )));
             }
         }
@@ -272,8 +271,7 @@ impl LocalFileStorage {
         for component in components {
             if component == ".." {
                 return Err(PersistError::validation(format!(
-                    "Path '{}' contains parent directory reference '..' and is not allowed",
-                    path
+                    "Path '{path}' contains parent directory reference '..' and is not allowed"
                 )));
             }
         }
@@ -281,8 +279,7 @@ impl LocalFileStorage {
         // Check for absolute paths (should be relative to base_dir)
         if normalized_path.starts_with('/') {
             return Err(PersistError::validation(format!(
-                "Absolute paths are not allowed: '{}'",
-                path
+                "Absolute paths are not allowed: '{path}'"
             )));
         }
 
